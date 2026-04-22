@@ -1,3 +1,4 @@
+from typing import List
 from pydantic import BaseModel, Field, json_schema
 
 class Word_Create(BaseModel):
@@ -13,6 +14,7 @@ class Word_Create(BaseModel):
 class Word_Response(Word_Create):
     Id: int
     Studied: bool = False
+    dictionary_id: int
     class Config:
         from_attributes=True
         json_schema={
@@ -25,17 +27,14 @@ class Word_Response(Word_Create):
         }
 
 
-class Dictionary(BaseModel):
-    Lang: str = Field(..., description="Язык словаря")
-    Len: int = Field(..., description="Количество слов в словаре")
-    Studied: bool = False
-    words: list[Word_Response] = []
+class DictionaryCreate(BaseModel):
+    lang: str = Field(..., description="Язык словаря", examples=["English"])
 
-class Dict_response(Dictionary):
+
+class DictionaryResponse(DictionaryCreate):
     id: int
-    lang: str
-    length: int
-    studied: bool
-    
+    user_id: int
+    length: int 
+    words: List[Word_Response] = []    
     class Config:
         from_attributes = True

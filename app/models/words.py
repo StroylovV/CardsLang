@@ -31,6 +31,12 @@ class Dictionary(Base):
         back_populates="dictionary", 
         cascade="all, delete-orphan"
     )
+    
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("user.id", ondelete="CASCADE"), 
+        nullable=False
+    )
+    user: Mapped["user"] = relationship(back_populates="dicts")
 
     @property
     def length(self) -> int:
