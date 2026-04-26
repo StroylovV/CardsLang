@@ -1,6 +1,7 @@
 from typing import List
 from pydantic import BaseModel, Field, json_schema
 
+#Добавление одного слова
 class Word_Create(BaseModel):
     Word: str = Field(..., description="Слово на иностранном языке")
     Translate: str = Field(..., description="Перевод")
@@ -11,6 +12,7 @@ class Word_Create(BaseModel):
                 "Translate": "Привет",
             }
         }
+#Получение слова
 class Word_Response(Word_Create):
     Id: int
     Studied: bool = False
@@ -26,11 +28,11 @@ class Word_Response(Word_Create):
             }
         }
 
-
+#Создание словаря
 class DictionaryCreate(BaseModel):
     lang: str = Field(..., description="Язык словаря", examples=["English"])
 
-
+#Получение словаря
 class DictionaryResponse(DictionaryCreate):
     id: int
     user_id: int
