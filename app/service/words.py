@@ -12,7 +12,7 @@ class WordService:
     def __init__(self, db: AsyncSession = Depends(get_db)):
         self.db = db
     #Добавляем слово
-    async def add_word(self, word_add: Word_Create, dictionary_id: int, status: False) -> Word:
+    async def add_word(self, word_add: Word_Create, dictionary_id: int, status: bool = False) -> Word:
         stmt = (
             insert(Word).values(**word_add.model_dump(),
             dictionary_id=dictionary_id, is_studied=status).returning(Word)
@@ -21,7 +21,7 @@ class WordService:
         
         result = await self.db.execute(stmt)
         await self.db.commit()
-        return result
+        return result.scalar_one()
     #Удаляем слово
     async def delete(self, word: Word) -> None:
         await self.db.delete(word)
@@ -37,7 +37,7 @@ class WordService:
 
     #Меняем значение флага is_studied
     async def mark_as_studied(self, word: Word, status: bool) -> Word:
-        await Word.is_studied=status
+        word.is_studied = status 
         await self.db.commit()
         await self.db.refresh(word)
         return word
@@ -57,6 +57,23 @@ class WordService:
         )
         result = await self.db.execute(query)
         return result.scalars().all()
+    #
+    async def get_language_summary(self,dictionary_id: int, is_studied: bool) -> int:
+        query = select(
+            func.count(Word.id).label("total"),
+            func.count(Word.id).filter(Word.is_studied==True).label("studied"),
+            func.count(Word.id).filter(Word.is_studied==False).label("remaining"),
+        
+        ).where(Word.dictionary_id==dictionary_id)
+
+        result = await self.db.execute(query)
+        stats = result.one()
+        return {
+        "total": stats.total,
+        "studied": stats.studied,
+        "remaining": stats.remaining
+        }
+
     
 
 
