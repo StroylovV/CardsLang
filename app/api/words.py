@@ -1,44 +1,32 @@
-from app.schemas import Word_Create
-from fastapi import APIRouter, HTTPException
+from typing import Any, List
 
-words_list = [
-    {
-        "id": 1,
-        "word": "hello",
-        "translate": "Привет",
-        
-    },
-    {
-        "id": 2,
-        "word": "sasi",
-        "translate": "sasi",
-        
-    },
-]
+from fastapi import APIRouter, Depends, HTTPException, status
 
-router=APIRouter()
+from app.core.security import get_current_user_id
+from app.schemas import Word_Create, Word_Response, DictionaryCreate, DictionaryResponse
+from app.service import WordService, DictionaryService
 
-@router.get("/words")
-def get_words():
-    return {"words": words_list, "total": len(words_list)}
+router = APIRouter()
 
-@router.get("/words/{word_id}")
-async def get_word(word_id: int):
-    for word in words_list:  # ← Обновлено (не async for)
-        if word["id"] == word_id:
-            return word
-    raise HTTPException(status_code=404, detail=f"Слово с id {word_id} не найдено")
+@router.get("/", response_model=List[Word_Response])
+async def get_words_to_learn(
+    word_service : WordService = Depends(),
+    is_studied: bool = Depends(),
+    current_user_id: int = Depends(get_current_user_id)
+) ->Any:
+    words = await word_service.get_word_by_studied(current_user_id, is_studied)
+    return words
+
+@router.post("/{dictionary_id}/words", response_model=Word_Response, status_code=status.HTTP_201_CREATED)
+async def new_word(
+    dictionary_id: int,
+    word_add: Word_Create, 
+    word_service: WordService = Depends(),
     
-    
-
-@router.post("/word")
-def add_words(add_word: Word_Create):
-    words_list.append({
-        "id":len(words_list)+1,
-        "word":add_word.Word,
-        "translate":add_word.Translate,
-    })
-    return {"Ok":True}
+    current_user_id: int = Depends(get_current_user_id)
+) ->Any:
+    word = await word_service.add_word(word_add, dictionary_id=dictionary_id)
+    return word
 
 @router.delete("/word")
 def del_word():

@@ -3,19 +3,19 @@ from pydantic import BaseModel, Field, json_schema
 
 #Добавление одного слова
 class Word_Create(BaseModel):
-    Word: str = Field(..., description="Слово на иностранном языке")
-    Translate: str = Field(..., description="Перевод")
+    word: str = Field(..., description="Слово на иностранном языке")
+    translate: str = Field(..., description="Перевод")
     class Config:
         json_schema={
             "example": {
-                "Word": "Hello",
-                "Translate": "Привет",
+                "word": "Hello",
+                "translate": "Привет",
             }
         }
 #Получение слова
 class Word_Response(Word_Create):
-    Id: int
-    Studied: bool = False
+    id: int
+    studied: bool = False
     dictionary_id: int
     class Config:
         from_attributes=True

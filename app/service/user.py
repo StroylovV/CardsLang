@@ -47,9 +47,10 @@ class UserService:
         await self.db.commit()
     
     async def Auth(self, username: str, password: str) ->List[User]:
-        user = await self.get_by_username(username)
+        result = await self.db.execute(select(User).where(User.username == username))
+        user = result.scalar_one_or_none()
 
-        if not user or not verify_password(password, hashed_password):
+        if not user or not verify_password(password, user.hashed_password):
             return None
             
         return user
