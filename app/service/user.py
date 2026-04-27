@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from fastapi import Depends
 from sqlalchemy import select
@@ -13,13 +13,15 @@ class UserService:
     def __init__(self, db: AsyncSession = Depends(get_db)):
         self.db = db
     
-    async def get_user_id(self, user_id: int) -> List[User]:
+    async def get_user_id(self, user_id: int) -> Optional[User]:
+        # ИСПРАВЛЕНО: добавлен .scalar_one_or_none(), чтобы вернуть объект, а не итератор
         result = await self.db.execute(select(User).filter(User.id == user_id))
-        return result
+        return result.scalar_one_or_none()
     
-    async def get_by_username(self, username: str) -> List[User]:
+    async def get_by_username(self, username: str) -> Optional[User]:
+        # ИСПРАВЛЕНО: добавлен .scalar_one_or_none()
         result = await self.db.execute(select(User).filter(User.username == username))
-        return result
+        return result.scalar_one_or_none()
     
     async def Create(self, user_in: UserCreate)-> User:
         user = User(
@@ -38,12 +40,11 @@ class UserService:
             user.hashed_password = get_password_hash(user_in.password)
         
         await self.db.commit()
-        await self.db.refresh(User)
-
-        return User
+        await self.db.refresh(user)
+        return user
     
-    async def Delete(self, user: User) ->None:
-        await self.db.delete(User)
+    async def Delete(self, user: User) -> None:
+        await self.db.delete(user)
         await self.db.commit()
     
     async def Auth(self, username: str, password: str) ->List[User]:
