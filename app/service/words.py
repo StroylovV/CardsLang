@@ -3,6 +3,7 @@ from typing import List
 from fastapi import Depends
 from sqlalchemy import delete, func, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.db import get_db
 from app.models.words import Word, Dictionary
@@ -26,6 +27,14 @@ class WordService:
     async def delete(self, word: Word) -> None:
         await self.db.delete(word)
         await self.db.commit()
+    async def get_word_by_id(self, word_id: int) -> Word:
+        query = (
+            select(Word)
+            .where(Word.id == word_id)
+            .options(selectinload(Word.dictionary))
+        )
+        result = await self.db.execute(query)
+        return result.scalar_one_or_none()
     #Получием слова, изученные или не изученные
     async def get_word_by_studied(self,dictionary_id: int, is_studied: bool) -> List[Word]:
         query = select(Word).where(
