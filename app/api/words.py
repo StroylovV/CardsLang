@@ -1,4 +1,5 @@
 from typing import Any, List
+from unittest import result
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
@@ -40,6 +41,18 @@ async def new_word(
     word = await word_service.add_word(word_add, dictionary_id=dictionary_id)
     return word
 
+@router.get("/{dictionary_id}/words_summary")
+async def get_language_summary(
+    dictionary_id: int,
+    word_service: WordService = Depends(),
+    current_user_id: int = Depends(get_current_user_id)
+
+)->Any:
+    result = await word_service.get_language_summary(dictionary_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Слова не найдены")
+    return result
+
 @router.put("/{word_id}", response_model=Word_Response)
 async def mark_as_studied(
     word_id: int,
@@ -69,5 +82,16 @@ async def delete_word(
         raise HTTPException(status_code=403, detail="Нет доступа")
     
     await word_service.delete(word)
-    return {"detail": "Заметка успешно удалена"}
+    return {"detail": "Слово успешно удалена"}
+
+@router.delete("/{dictionary_id}/delete_all", status_code=status.HTTP_200_OK)
+async def clear_language_dictionar(
+    dictionary_id: int,
+    word_service: WordService = Depends(),
+    current_user_id: int = Depends(get_current_user_id)
+)->Any:
+    await word_service.clear_language_dictionary(dictionary_id)
+    return {"detail": "Словарь успешно отчищен"}
+
+
     

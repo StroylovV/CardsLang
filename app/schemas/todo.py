@@ -39,7 +39,6 @@ class DictionaryCreate(BaseModel):
 class DictionaryResponse(DictionaryCreate):
     id: int
     user_id: int
-    length: int 
-    words: List[Word_Response] = []    
+    length: int    
     class Config:
         from_attributes = True

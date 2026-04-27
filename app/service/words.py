@@ -67,7 +67,7 @@ class WordService:
         result = await self.db.execute(query)
         return result.scalars().all()
     #
-    async def get_language_summary(self,dictionary_id: int, is_studied: bool) -> int:
+    async def get_language_summary(self,dictionary_id: int) -> int:
         query = select(
             func.count(Word.id).label("total"),
             func.count(Word.id).filter(Word.is_studied==True).label("studied"),

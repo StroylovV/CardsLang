@@ -15,3 +15,5 @@ async def create_user(
 ) ->Any:
     user = await user_service.Create(user_in)
     return user
+
+
