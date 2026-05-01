@@ -14,12 +14,12 @@ class UserService:
         self.db = db
     
     async def get_user_id(self, user_id: int) -> Optional[User]:
-        # ИСПРАВЛЕНО: добавлен .scalar_one_or_none(), чтобы вернуть объект, а не итератор
+        
         result = await self.db.execute(select(User).filter(User.id == user_id))
         return result.scalar_one_or_none()
     
     async def get_by_username(self, username: str) -> Optional[User]:
-        # ИСПРАВЛЕНО: добавлен .scalar_one_or_none()
+        
         result = await self.db.execute(select(User).filter(User.username == username))
         return result.scalar_one_or_none()
     

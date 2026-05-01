@@ -10,8 +10,8 @@ from passlib.context import CryptContext
 
 from app.core.config import settings
 
-JWT_COOKIE_KEY = "dassddasdsadsad"
 
+JWT_COOKIE_KEY = "access_token"
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
