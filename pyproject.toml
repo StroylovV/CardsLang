@@ -6,7 +6,7 @@ authors = [
     {name = "StroylovV",email = "spartan9611@gmail.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.14,<4.0"
 dependencies = [
     "fastapi (>=0.136.0,<0.137.0)",
     "uvicorn (>=0.44.0,<0.45.0)",
@@ -23,11 +23,13 @@ dependencies = [
     "alembic (>=1.18.4,<2.0.0)",
     "pydantic-settings (>=2.14.0,<3.0.0)",
     "psycopg2-binary (>=2.9.12,<3.0.0)",
-    "python-multipart (>=0.0.27,<0.0.28)"
+    "python-multipart (>=0.0.27,<0.0.28)",
+    "fastapi-cache2[redis] (>=0.2.2,<0.3.0) ; python_version >= '3.8' and python_version < '4.0'"
 ]
 
 [tool.poetry]
-packages = [{include = "cardslang", from = "src"}]
+package-mode = true
+packages = [{include = "app"}]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
