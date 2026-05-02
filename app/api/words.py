@@ -1,45 +1,97 @@
-from app.schemas import Word_Create
-from fastapi import APIRouter, HTTPException
+from typing import Any, List
+from unittest import result
 
-words_list = [
-    {
-        "id": 1,
-        "word": "hello",
-        "translate": "Привет",
-        
-    },
-    {
-        "id": 2,
-        "word": "sasi",
-        "translate": "sasi",
-        
-    },
-]
+from fastapi import APIRouter, Depends, HTTPException, status
 
-router=APIRouter()
+from app.core.security import get_current_user_id
+from app.schemas import Word_Create, Word_Response, DictionaryCreate, DictionaryResponse, Word_Update
+from app.service import WordService, DictionaryService
 
-@router.get("/words")
-def get_words():
-    return {"words": words_list, "total": len(words_list)}
+router = APIRouter()
 
-@router.get("/words/{word_id}")
-async def get_word(word_id: int):
-    for word in words_list:  # ← Обновлено (не async for)
-        if word["id"] == word_id:
-            return word
-    raise HTTPException(status_code=404, detail=f"Слово с id {word_id} не найдено")
+@router.get("/{dictionary_id}/words", response_model=List[Word_Response])
+async def get_words_to_learn(
+    dictionary_id: int,
+    is_studied: bool,
+    word_service: WordService = Depends(),
+    current_user_id: int = Depends(get_current_user_id)
+) -> Any:
+    words = await word_service.get_word_by_studied(dictionary_id, is_studied)
+    return words
+
+@router.get("/{dictionary_id}/words/training", response_model=List[Word_Response])
+async def get_training_set(
+    dictionary_id: int,
+    count: int,
+    word_service: WordService = Depends(),
+    current_user_id: int = Depends(get_current_user_id)
+)->Any:
+    words = await word_service.get_training_set(dictionary_id=dictionary_id, count=count)
+    return words
+
+
+@router.post("/{dictionary_id}/words", response_model=Word_Response, status_code=status.HTTP_201_CREATED)
+async def new_word(
+    dictionary_id: int,
+    word_add: Word_Create, 
+    word_service: WordService = Depends(),
     
+    current_user_id: int = Depends(get_current_user_id)
+) ->Any:
+    word = await word_service.add_word(word_add, dictionary_id=dictionary_id)
+    return word
+
+@router.get("/{dictionary_id}/words_summary")
+async def get_language_summary(
+    dictionary_id: int,
+    word_service: WordService = Depends(),
+    current_user_id: int = Depends(get_current_user_id)
+
+)->Any:
+    result = await word_service.get_language_summary(dictionary_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Слова не найдены")
+    return result
+
+@router.put("/{word_id}", response_model=Word_Response)
+async def mark_as_studied(
+    word_id: int,
+    is_studied: bool,
+    word_service: WordService = Depends(),
+    current_user_id: int = Depends(get_current_user_id)
+) -> Any:
+    word = await word_service.get_word_by_id(word_id) 
+
+    if not word:
+        raise HTTPException(status_code=404, detail="Слово не найдено")
+    if word.dictionary.user_id != current_user_id:
+        raise HTTPException(status_code=403, detail="Нет доступа")
+
+    return await word_service.mark_as_studied(word, is_studied)
+@router.delete("/{word_id}")
+async def delete_word(
+    word_id: int,
+    word_service: WordService = Depends(),
+    current_user_id: int = Depends(get_current_user_id)
+)->Any:
+    word = await word_service.get_word_by_id(word_id)
+
+    if not word:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Слово не найдено")
+    if word.dictionary.user_id != current_user_id:
+        raise HTTPException(status_code=403, detail="Нет доступа")
     
+    await word_service.delete(word)
+    return {"detail": "Слово успешно удалена"}
 
-@router.post("/word")
-def add_words(add_word: Word_Create):
-    words_list.append({
-        "id":len(words_list)+1,
-        "word":add_word.Word,
-        "translate":add_word.Translate,
-    })
-    return {"Ok":True}
+@router.delete("/{dictionary_id}/delete_all", status_code=status.HTTP_200_OK)
+async def clear_language_dictionar(
+    dictionary_id: int,
+    word_service: WordService = Depends(),
+    current_user_id: int = Depends(get_current_user_id)
+)->Any:
+    await word_service.clear_language_dictionary(dictionary_id)
+    return {"detail": "Словарь успешно отчищен"}
 
-@router.delete("/word")
-def del_word():
-    pass
+
+    

@@ -1,7 +1,10 @@
-from typing import List
+from typing import List, TYPE_CHECKING
 from sqlalchemy import String, ForeignKey, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.models.user import User
 
 class Word(Base):
     __tablename__ = "words" 
@@ -36,7 +39,7 @@ class Dictionary(Base):
         ForeignKey("user.id", ondelete="CASCADE"), 
         nullable=False
     )
-    user: Mapped["user"] = relationship(back_populates="dicts")
+    user: Mapped["User"] = relationship(back_populates="dicts")
 
     @property
     def length(self) -> int:

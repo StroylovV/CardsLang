@@ -1,3 +1,5 @@
+from typing import List
+from pydantic import AnyHttpUrl, Field, HttpUrl, EmailStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class DataBase_Settings(BaseSettings):
@@ -16,17 +18,43 @@ class DataBase_Settings(BaseSettings):
     def sync_database_url(self) -> str:
         
         return f"postgresql+psycopg://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
-class Settings(BaseSettings):
-   
-    database: DataBase_Settings
+
+class ApiSettings(BaseSettings):
+    title: str
+    description: str
+    version: str
+    contact_name: str
+    contact_email: EmailStr
+    contact_url: str
     
+
+class SecuritySettings(BaseSettings):
+    jwt_secret_key: str = Field(..., env="SECURITY__JWT_SECRET_KEY")
+    jwt_algorithm: str = Field(..., env="SECURITY__JWT_ALGORITHM")
+    jwt_expire_minutes: int = Field(..., env="SECURITY__JWT_EXPIRE_MINUTES")
+    
+class CorsSettings(BaseSettings):
+    origins: List[AnyHttpUrl] = Field(..., env="CORS__ORIGINS")
+
+class Settings(BaseSettings):
+    
+    database: DataBase_Settings
+    api: ApiSettings
+    security: SecuritySettings
+    cors: CorsSettings
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
-        extra="ignore",
+        extra="ignore", 
         env_nested_delimiter="__",  
     )
 
-
 settings = Settings()
+
+
+api_config = settings.api
+database_config = settings.database
+security_config = settings.security
+cors_config = settings.cors
