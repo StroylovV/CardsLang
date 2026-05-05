@@ -26,6 +26,25 @@ class DictionaryService:
         await self.db.refresh(new_dictionary, attribute_names=["words"])
     
         return new_dictionary
+
+    async def get_dictionary_by_id(self, dictionary_id: int, user_id: int) -> Dictionary | None:
+        """
+        Находит конкретный словарь пользователя по его ID.
+        """
+        query = (
+            select(Dictionary)
+            .where(
+                Dictionary.id == dictionary_id,
+                Dictionary.user_id == user_id
+            )
+            # Если тебе нужно сразу подгружать слова, оставь эту строку
+            .options(selectinload(Dictionary.words)) 
+        )
+        
+        result = await self.db.execute(query)
+        # Возвращает объект или None, если ничего не найдено
+        return result.scalar_one_or_none()
+    
     #Показывать пользователю словарь по языку на главной странице.
     async def get_or_create_dictionary(self, user_id: int, lang: str) -> Dictionary:
         query = (
@@ -61,5 +80,9 @@ class DictionaryService:
         )
         result = await self.db.execute(query)
         return list(result.scalars().all())
+
+    async def delete(self, dictionary: Dictionary) -> None:
+        await self.db.delete(dictionary)
+        await self.db.commit()
 
     

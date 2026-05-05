@@ -34,7 +34,7 @@ class SecuritySettings(BaseSettings):
     jwt_expire_minutes: int = Field(..., env="SECURITY__JWT_EXPIRE_MINUTES")
     
 class CorsSettings(BaseSettings):
-    origins: List[AnyHttpUrl] = Field(..., env="CORS__ORIGINS")
+    origins: List[str] = Field(..., env="CORS__ORIGINS")
 
 class Settings(BaseSettings):
     

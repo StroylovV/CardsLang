@@ -38,5 +38,23 @@ async def new_Dictionary(
     dictionary = await dictionary_service.add_Dictionary(add_dictionary, current_user_id)
     return dictionary
 
+@router.delete("/{dictionary_id}")
+async def del_dict(
+    dictionary_id: int,
+    dictionary_service: DictionaryService = Depends(),
+    current_user_id: int = Depends(get_current_user_id),
+) -> Any:
+    
+    dictionary = await dictionary_service.get_dictionary_by_id(dictionary_id, current_user_id)
+
+    if not dictionary:
+        raise HTTPException(status_code=404, detail="Словарь не найден")
+    
+    
+    if dictionary.user_id != current_user_id:
+        raise HTTPException(status_code=403, detail="Нет доступа")
+
+    await dictionary_service.delete(dictionary)
+    return {"detail": "Словарь успешно удален"}
 
     

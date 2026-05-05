@@ -15,16 +15,16 @@ class Word_Create(BaseModel):
 #Получение слова
 class Word_Response(Word_Create):
     id: int
-    studied: bool = False
+    is_studied: bool = False
     dictionary_id: int
     class Config:
         from_attributes=True
-        json_schema={
+        json_schema_extra = {
             "example": {
                 "id": 1,
                 "word": "hello",
                 "translate": "Привет",
-                "studied": False
+                "is_studied": False
             }
         }
 class Word_Update(BaseModel):
@@ -42,3 +42,7 @@ class DictionaryResponse(DictionaryCreate):
     length: int    
     class Config:
         from_attributes = True
+
+
+
+

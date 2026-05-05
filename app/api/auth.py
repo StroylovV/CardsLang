@@ -22,7 +22,13 @@ async def login(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Неверное имя пользователя или пароль")
     
     access_token = create_access_token(subject=user.id)
-    response.set_cookie(JWT_COOKIE_KEY, access_token, httponly=True, samesite="none", secure=True)
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        samesite="lax",
+        secure=False,   
+    )
     return {"access_token": access_token}
 
 @router.post("/logout")
