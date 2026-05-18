@@ -1,13 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { apiFetch } from "../../lib/api";
 import AddWordModal from "./AddWordModal";
-// Добавили иконку Minus в импорт
-import { Trash2, ChevronLeft, Plus, GraduationCap, CheckCircle2, Sun, Moon, Play, X, Minus } from "lucide-react";
+import { Trash2, ChevronLeft, Plus, GraduationCap, CheckCircle2, Sun, Moon, Play, X, Minus, Volume2 } from "lucide-react";
 import { useTheme } from "next-themes";
-
 import Image from "next/image";
 
 interface Word {
@@ -16,6 +14,23 @@ interface Word {
   translate: string;
   is_studied: boolean;
 }
+
+const getLangCode = (langName: string): string | null => {
+  if (!langName) return null;
+  const lang = langName.toLowerCase(); 
+  
+  if (lang.includes("англ") || lang.includes("english") || lang.includes("eng")) return "en";
+  if (lang.includes("рус") || lang.includes("russian") || lang.includes("rus")) return "ru";
+  if (lang.includes("исп") || lang.includes("spanish") || lang.includes("spa")) return "es";
+  if (lang.includes("кит") || lang.includes("chinese") || lang.includes("zho")) return "zh";
+  if (lang.includes("нем") || lang.includes("german") || lang.includes("ger")) return "de";
+  if (lang.includes("франц") || lang.includes("french") || lang.includes("fra")) return "fr";
+  if (lang.includes("итал") || lang.includes("italian") || lang.includes("ita")) return "it";
+  if (lang.includes("япон") || lang.includes("japanese") || lang.includes("jap")) return "ja";
+  if (lang.includes("корей") || lang.includes("korean") || lang.includes("kor")) return "ko";
+  
+  return null; 
+};
 
 export default function DictionaryPage() {
   const { id } = useParams();
@@ -34,36 +49,87 @@ export default function DictionaryPage() {
   const [trainCount, setTrainCount] = useState<number | "">(10); 
   const [isStartingTrain, setIsStartingTrain] = useState(false);
 
+  const [deckLang, setDeckLang] = useState<string>("");
+  const audioCache = useRef<Record<string, string>>({});
+
   useEffect(() => setMounted(true), []);
 
-  const fetchWords = useCallback(async () => {
+  const fetchWordsAndSummary = useCallback(async () => {
     if (!id) return;
     try {
       setLoading(true);
       const isStudied = activeTab === "studied";
-      const data = await apiFetch(`/words/${id}/words?is_studied=${isStudied}`);
-      if (Array.isArray(data)) setWords(data);
+      
+      const [wordsData, summaryData] = await Promise.all([
+        apiFetch(`/words/${id}/words?is_studied=${isStudied}`),
+        apiFetch("/words/all_summary")
+      ]);
+
+      if (Array.isArray(wordsData)) {
+        setWords(wordsData);
+      }
+
+      if (Array.isArray(summaryData)) {
+        const currentDeck = summaryData.find((d: any) => d.id === Number(id));
+        if (currentDeck && currentDeck.language) {
+          setDeckLang(currentDeck.language); 
+        }
+      }
     } catch (err) {
-      console.error("Ошибка при загрузке слов:", err);
+      console.error("Ошибка при загрузке:", err);
     } finally {
       setLoading(false);
     }
   }, [id, activeTab]);
 
   useEffect(() => {
-    fetchWords();
-  }, [fetchWords]);
+    fetchWordsAndSummary();
+  }, [fetchWordsAndSummary]);
+
+  const langCode = getLangCode(deckLang);
+
+  const playAudio = async (e: React.MouseEvent, word: string) => {
+    e.stopPropagation(); 
+    if (!langCode) return; 
+    
+    if (audioCache.current[word]) {
+      const audio = new Audio(audioCache.current[word]);
+      audio.play().catch(err => console.error(err));
+      return;
+    }
+
+    const audioUrl = `http://localhost:8000/api/tts_word/app/voice/speak?text=${encodeURIComponent(word)}&lang=${langCode}`;
+
+    try {
+      const response = await fetch(audioUrl, {
+        method: "GET",
+        credentials: "include",
+      });
+      
+      if (!response.ok) throw new Error("Ошибка загрузки аудио");
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      
+      audioCache.current[word] = url;
+      
+      const audio = new Audio(url);
+      audio.play().catch(err => console.error(err));
+      
+    } catch (error) {
+      console.error("Ошибка воспроизведения:", error);
+    }
+  };
 
   const markAsStudied = async () => {
     if (selectedWords.length === 0) return;
     try {
-      await Promise.all(
-        selectedWords.map((wordId) =>
-          apiFetch(`/words/${wordId}?is_studied=true`, { method: "PUT" })
-        )
-      );
+      await apiFetch(`/words/bulk-study`, { 
+        method: 'PUT',
+        body: JSON.stringify({ ids: selectedWords, is_studied: true })
+      });
       setSelectedWords([]); 
-      await fetchWords();   
+      await fetchWordsAndSummary();   
     } catch (err) {
       alert("Ошибка при обновлении статуса слов");
     }
@@ -101,7 +167,6 @@ export default function DictionaryPage() {
     }
   };
 
-  // Функции для кнопок - и +
   const handleDecrement = () => {
     setTrainCount((prev) => {
       if (typeof prev !== "number") return 1;
@@ -117,13 +182,21 @@ export default function DictionaryPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 pb-32 font-sans transition-colors duration-300">
-      <div className="max-w-3xl mx-auto px-4 pt-8">
-        <header className="flex justify-between items-center mb-8 bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-800">
-        <div className="flex items-center gap-4">
+    <div className="min-h-screen relative pb-32 font-sans transition-colors duration-300">
+      
+      {/* КРАСИВЫЙ ФОН */}
+      <div className="fixed inset-0 z-[-1] bg-[#F8FAFC] dark:bg-slate-950 transition-colors duration-300">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+        <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-400/30 dark:bg-purple-600/20 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-400/30 dark:bg-blue-600/20 rounded-full blur-[120px]" />
+      </div>
+
+      <div className="max-w-3xl mx-auto px-4 pt-8 relative z-10">
+        <header className="flex justify-between items-center mb-8 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-4 rounded-3xl shadow-sm border border-white/40 dark:border-slate-800/60 sticky top-4 z-40 transition-colors">
+          <div className="flex items-center gap-4">
             <button
               onClick={() => router.push('/decks')}
-              className="p-2 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-xl transition-colors text-indigo-600 dark:text-indigo-400"
+              className="p-2 hover:bg-white dark:hover:bg-slate-800 rounded-xl transition-colors text-indigo-600 dark:text-indigo-400"
             >
               <ChevronLeft size={28} />
             </button>
@@ -133,7 +206,7 @@ export default function DictionaryPage() {
               alt="CardsLang Logo" 
               width={130} 
               height={36} 
-              className="object-contain hidden md:block" // Скрываем на мобилках, чтобы экономить место
+              className="object-contain hidden md:block" 
             />
             <div className="h-8 w-px bg-gray-200 dark:bg-slate-700 hidden md:block"></div>
             
@@ -146,7 +219,7 @@ export default function DictionaryPage() {
             {mounted && (
               <button 
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="p-2.5 rounded-xl bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-yellow-400 transition-colors"
+                className="p-2.5 rounded-xl bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 border border-white/20 dark:border-slate-700/50 text-gray-500 dark:text-yellow-400 transition-all"
               >
                 {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
               </button>
@@ -170,13 +243,13 @@ export default function DictionaryPage() {
         </header>
 
         {/* Табы */}
-        <div className="flex bg-gray-200/50 dark:bg-slate-900 p-1.5 rounded-[2rem] mb-8 gap-1 border border-transparent dark:border-slate-800">
+        <div className="flex bg-white/40 dark:bg-slate-900/40 backdrop-blur-md p-1.5 rounded-[2rem] mb-8 gap-1 border border-white/30 dark:border-slate-800/50">
           <button
             onClick={() => setActiveTab("new")}
             className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-[1.5rem] font-bold transition-all ${
               activeTab === "new" 
-                ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-md" 
-                : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                ? "bg-white/90 dark:bg-slate-800/90 text-indigo-600 dark:text-indigo-400 shadow-sm" 
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
             }`}
           >
             <GraduationCap size={20} /> Не выучено
@@ -185,8 +258,8 @@ export default function DictionaryPage() {
             onClick={() => setActiveTab("studied")}
             className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-[1.5rem] font-bold transition-all ${
               activeTab === "studied" 
-                ? "bg-white dark:bg-slate-800 text-green-600 dark:text-green-400 shadow-md" 
-                : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                ? "bg-white/90 dark:bg-slate-800/90 text-green-600 dark:text-green-400 shadow-sm" 
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
             }`}
           >
             <CheckCircle2 size={20} /> Выучено
@@ -194,14 +267,14 @@ export default function DictionaryPage() {
         </div>
 
         {/* Список слов */}
-        <div className="space-y-4">
+        <div className="space-y-4 relative z-10">
           {loading ? (
             <div className="flex flex-col items-center py-20">
               <div className="animate-spin w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full mb-4"></div>
               <p className="text-gray-400 dark:text-gray-500 font-medium">Загружаем слова...</p>
             </div>
           ) : words.length === 0 ? (
-            <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-[3rem] border-2 border-dashed border-gray-100 dark:border-slate-800">
+            <div className="text-center py-20 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl rounded-[3rem] border-2 border-dashed border-gray-300 dark:border-slate-700">
               <p className="text-gray-400 dark:text-gray-500 font-bold">Здесь пока пусто 📭</p>
             </div>
           ) : (
@@ -213,22 +286,36 @@ export default function DictionaryPage() {
                     prev.includes(word.id) ? prev.filter((i) => i !== word.id) : [...prev, word.id]
                   )
                 }
-                className={`group relative p-6 rounded-[2rem] border-2 transition-all duration-300 ${
+                className={`group relative p-6 rounded-[2rem] border-2 transition-all duration-300 backdrop-blur-xl ${
                   selectedWords.includes(word.id)
-                    ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/30 shadow-inner"
-                    : "bg-white dark:bg-slate-900 border-transparent dark:border-slate-800 shadow-sm hover:shadow-md hover:border-indigo-100 dark:hover:border-indigo-900 cursor-pointer"
+                    ? "border-indigo-500 bg-indigo-50/80 dark:bg-indigo-950/60 shadow-inner"
+                    : "bg-white/70 dark:bg-slate-900/70 border-white/40 dark:border-slate-800/60 shadow-sm hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-800 cursor-pointer"
                 }`}
               >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-2xl font-black text-gray-900 dark:text-gray-100 leading-tight">
-                      {word.word || "Без названия"} 
-                    </h3>
-                    <p className="text-lg font-medium text-indigo-400 dark:text-indigo-300 mt-1">{word.translate}</p>
+                <div className="flex justify-between items-center">
+                  
+                  <div className="flex items-center gap-4 flex-1">
+                    <div>
+                      <h3 className="text-2xl font-black text-gray-900 dark:text-gray-100 leading-tight">
+                        {word.word || "Без названия"} 
+                      </h3>
+                      <p className="text-lg font-medium text-indigo-500 dark:text-indigo-400 mt-1">{word.translate}</p>
+                    </div>
+
+                    {langCode && (
+                      <button
+                        onClick={(e) => playAudio(e, word.word)}
+                        className="p-2 ml-2 text-blue-500 hover:text-white hover:bg-blue-500 dark:hover:bg-blue-600 rounded-full transition-colors opacity-70 hover:opacity-100"
+                        title="Прослушать произношение"
+                      >
+                        <Volume2 size={22} />
+                      </button>
+                    )}
                   </div>
+
                   <button
                     onClick={(e) => { e.stopPropagation(); deleteWord(word.id); }}
-                    className="p-2 text-gray-200 dark:text-gray-700 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
+                    className="p-2 text-gray-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
                   >
                     <Trash2 size={20} />
                   </button>
@@ -245,9 +332,9 @@ export default function DictionaryPage() {
         </div>
       </div>
 
-      {/* Плавающая панель действий (для ручного выбора) */}
+      {/* Плавающая панель действий */}
       {selectedWords.length > 0 && (
-        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 w-[90%] max-w-lg bg-gray-900/95 dark:bg-slate-900/95 backdrop-blur-md text-white p-4 rounded-[2.5rem] shadow-2xl flex items-center justify-between z-40 animate-in slide-in-from-bottom-10 border border-white/5">
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 w-[90%] max-w-lg bg-gray-900/90 dark:bg-slate-900/90 backdrop-blur-2xl text-white p-4 rounded-[2.5rem] shadow-2xl flex items-center justify-between z-40 animate-in slide-in-from-bottom-10 border border-white/10">
           <div className="pl-4">
             <span className="text-indigo-400 dark:text-indigo-300 font-black text-2xl">{selectedWords.length}</span>
             <span className="ml-2 text-xs font-bold text-gray-400 uppercase tracking-widest">выбрано</span>
@@ -272,19 +359,17 @@ export default function DictionaryPage() {
         </div>
       )}
 
-      {/* Модалка добавления слова */}
       {isModalOpen && (
         <AddWordModal
           dictionaryId={Number(id)}
           onClose={() => setIsModalOpen(false)}
-          onSuccess={() => { setIsModalOpen(false); fetchWords(); }}
+          onSuccess={() => { setIsModalOpen(false); fetchWordsAndSummary(); }}
         />
       )}
 
-      {/* Модалка ввода количества слов для тренировки */}
       {isTrainModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[60] flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-[3.5rem] w-full max-w-sm p-10 shadow-2xl animate-in fade-in zoom-in duration-300 relative border border-gray-100 dark:border-slate-800">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xl z-[60] flex items-center justify-center p-4">
+          <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl rounded-[3.5rem] w-full max-w-sm p-10 shadow-2xl animate-in fade-in zoom-in duration-300 relative border border-white/20 dark:border-slate-800/50">
             <button 
               onClick={() => setIsTrainModalOpen(false)}
               className="absolute top-8 right-8 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
@@ -295,9 +380,7 @@ export default function DictionaryPage() {
             <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Тренировка</h2>
             <p className="text-gray-500 dark:text-gray-400 mb-8 font-medium text-sm">Сколько слов хотите повторить?</p>
             
-            {/* НОВЫЙ КАСТОМНЫЙ ИНПУТ С КНОПКАМИ */}
-            <div className="flex items-center justify-between w-full p-2 bg-gray-50 dark:bg-slate-950 border-2 border-gray-100 dark:border-slate-800 rounded-[1.5rem] mb-8 focus-within:border-blue-600 dark:focus-within:border-blue-500 transition-all">
-              
+            <div className="flex items-center justify-between w-full p-2 bg-gray-50/50 dark:bg-slate-950/50 border-2 border-gray-100 dark:border-slate-800 rounded-[1.5rem] mb-8 focus-within:border-blue-600 dark:focus-within:border-blue-500 transition-all">
               <button 
                 onClick={handleDecrement}
                 className="w-12 h-12 flex items-center justify-center text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 active:scale-90 transition-all rounded-xl hover:bg-white dark:hover:bg-slate-900"
@@ -328,13 +411,7 @@ export default function DictionaryPage() {
               disabled={isStartingTrain || !trainCount || trainCount <= 0}
               className="w-full flex justify-center items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-blue-200 dark:shadow-none active:scale-95 transition-all disabled:opacity-50"
             >
-              {isStartingTrain ? (
-                "Подготовка..."
-              ) : (
-                <>
-                  Начать <Play fill="currentColor" size={20} />
-                </>
-              )}
+              {isStartingTrain ? "Подготовка..." : <><Play fill="currentColor" size={20} /> Начать</>}
             </button>
           </div>
         </div>

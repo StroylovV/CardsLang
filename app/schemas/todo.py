@@ -43,6 +43,9 @@ class DictionaryResponse(DictionaryCreate):
     class Config:
         from_attributes = True
 
+class BulkUpdateStudiedRequest(BaseModel):
+    ids: List[int]
+    is_studied: bool
 
 
 

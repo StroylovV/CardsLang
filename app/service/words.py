@@ -1,6 +1,6 @@
 from typing import List, Optional
 from fastapi import Depends
-from sqlalchemy import delete, func, insert, select
+from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -61,6 +61,21 @@ class WordService:
         )
         result = await self.db.execute(query)
         return list(result.scalars().all())
+
+    async def bulk_mark_as_studied(self, word_ids:List[int], status: bool)->int:
+        stmt = (
+            update(Word).where(Word.id.in_(word_ids)).values(is_studied=status)
+        )
+        res = await self.db.execute(stmt)
+        await self.db.commit()
+        return res.rowcount
+
+    async def get_words_by_ids(self, dictionary_id: int, word_ids: List[int])->List[Word]:
+        query = (
+            select(Word).where(Word.dictionary_id == dictionary_id, Word.id.in_(word_ids))
+        )
+        res = await self.db.execute(query)
+        return list(res.scalars().all())        
 
     async def get_all_dictionaries(self, user_id: int):
         query = (

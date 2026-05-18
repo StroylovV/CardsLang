@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react"; 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { apiFetch } from "../../../lib/api";
-import { Sun, Moon, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Sun, Moon, X, ChevronLeft, ChevronRight, Volume2 } from "lucide-react";
 import { useTheme } from "next-themes";
 
 interface Word {
@@ -11,6 +11,24 @@ interface Word {
   word: string;
   translate: string;
 }
+
+// ИЗМЕНЕНИЯ ЗДЕСЬ: Возвращаем null, если язык не поддерживается
+const getLangCode = (langName: string): string | null => {
+  if (!langName) return null;
+  const lang = langName.toLowerCase(); 
+  
+  if (lang.includes("англ") || lang.includes("english") || lang.includes("eng")) return "en";
+  if (lang.includes("рус") || lang.includes("russian") || lang.includes("rus")) return "ru";
+  if (lang.includes("исп") || lang.includes("spanish") || lang.includes("spa")) return "es";
+  if (lang.includes("кит") || lang.includes("chinese") || lang.includes("zho")) return "zh";
+  if (lang.includes("нем") || lang.includes("german") || lang.includes("ger")) return "de";
+  if (lang.includes("франц") || lang.includes("french") || lang.includes("fra")) return "fr";
+  if (lang.includes("итал") || lang.includes("italian") || lang.includes("ita")) return "it";
+  if (lang.includes("япон") || lang.includes("japanese") || lang.includes("jap")) return "ja";
+  if (lang.includes("корей") || lang.includes("korean") || lang.includes("kor")) return "ko";
+  
+  return null; // Язык не поддерживается
+};
 
 export default function TrainingPage() {
   const { id } = useParams();
@@ -24,6 +42,10 @@ export default function TrainingPage() {
   const [isFlipped, setIsFlipped] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isFinishing, setIsFinishing] = useState(false);
+  
+  // ИЗМЕНЕНИЯ ЗДЕСЬ: Начальное состояние - пустая строка
+  const [deckLang, setDeckLang] = useState<string>("");
+  const audioCache = useRef<Record<string, string>>({});
 
   useEffect(() => setMounted(true), []);
 
@@ -37,15 +59,21 @@ export default function TrainingPage() {
 
       try {
         setLoading(true);
-        const selectedIds = idsParam.split(",").map(Number);
-        const allWords: Word[] = await apiFetch(`/words/${id}/words?is_studied=false`);
-        let filtered = allWords.filter(w => selectedIds.includes(w.id));
         
-        if (filtered.length === 0) {
-            const allWordsBack: Word[] = await apiFetch(`/words/${id}/words?is_studied=true`);
-            filtered = allWordsBack.filter(w => selectedIds.includes(w.id));
+        const [summaryData, batchWords] = await Promise.all([
+          apiFetch("/words/all_summary"),
+          apiFetch(`/words/${id}/training-batch?ids=${idsParam}`) 
+        ]);
+
+        if (Array.isArray(summaryData)) {
+          const currentDeck = summaryData.find((d: any) => d.id === Number(id));
+          if (currentDeck && currentDeck.language) {
+            setDeckLang(currentDeck.language); 
+          }
         }
-        setWords(filtered);
+
+        setWords(batchWords || []);
+
       } catch (err) {
         console.error("Ошибка при загрузке:", err);
       } finally {
@@ -56,17 +84,54 @@ export default function TrainingPage() {
     if (id) fetchTrainingWords();
   }, [id, router, searchParams]);
 
+  // Проверяем, поддерживается ли язык
+  const langCode = getLangCode(deckLang);
+
+  const playAudio = async (e: React.MouseEvent, word: string) => {
+    e.stopPropagation(); 
+    if (!langCode) return; // Защита
+    
+    if (audioCache.current[word]) {
+      const audio = new Audio(audioCache.current[word]);
+      audio.play().catch(err => console.error(err));
+      return;
+    }
+
+    const audioUrl = `http://localhost:8000/api/tts_word/app/voice/speak?text=${encodeURIComponent(word)}&lang=${langCode}`;
+
+    try {
+      const response = await fetch(audioUrl, {
+        method: "GET",
+        credentials: "include",
+      });
+      
+      if (!response.ok) throw new Error("Ошибка загрузки аудио");
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      
+      audioCache.current[word] = url;
+      
+      const audio = new Audio(url);
+      audio.play().catch(err => console.error(err));
+      
+    } catch (error) {
+      console.error("Ошибка воспроизведения:", error);
+    }
+  };
+
   const finishTraining = async () => {
     try {
       setIsFinishing(true);
-      await Promise.all(
-        words.map(word => 
-          apiFetch(`/words/${word.id}?is_studied=true`, { method: 'PUT' })
-        )
-      );
+      const wordIds = words.map(w => w.id);
+      await apiFetch(`/words/bulk-study`, { 
+        method: 'PUT',
+        body: JSON.stringify({ ids: wordIds, is_studied: true })
+      });
       router.push(`/deck/${id}`);
     } catch (err) {
       alert("Ошибка при сохранении прогресса");
+      console.error(err);
     } finally {
       setIsFinishing(false);
     }
@@ -96,7 +161,7 @@ export default function TrainingPage() {
     return (
       <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 flex flex-col items-center justify-center p-6 text-center transition-colors">
         <div className="text-6xl mb-4">🤷‍♂️</div>
-        <p className="text-gray-500 dark:text-gray-400 mb-6 font-bold text-xl">Слова не выбраны</p>
+        <p className="text-gray-500 dark:text-gray-400 mb-6 font-bold text-xl">Слова не найдены</p>
         <button onClick={() => router.back()} className="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black shadow-lg">
           ВЕРНУТЬСЯ
         </button>
@@ -110,7 +175,6 @@ export default function TrainingPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 flex flex-col items-center p-6 relative transition-colors duration-300">
       
-      {/* Верхняя панель */}
       <div className="absolute top-6 left-6 right-6 flex justify-between items-center z-10">
         {mounted && (
           <button 
@@ -128,7 +192,6 @@ export default function TrainingPage() {
         </button>
       </div>
 
-      {/* Прогресс */}
       <div className="mt-20 flex items-center gap-2 mb-12">
         {words.map((_, idx) => (
           <div 
@@ -142,29 +205,63 @@ export default function TrainingPage() {
         ))}
       </div>
 
-      {/* Карточка */}
       <div className="w-full max-w-sm perspective-1000 h-[420px]" onClick={() => setIsFlipped(!isFlipped)}>
         <div className={`relative w-full h-full transition-all duration-700 transform-style-3d cursor-pointer ${isFlipped ? 'rotate-y-180' : ''}`}>
           
-          {/* Лицо */}
+          {/* ЛИЦО КАРТОЧКИ */}
           <div className="absolute inset-0 bg-white dark:bg-slate-900 rounded-[3.5rem] shadow-2xl shadow-indigo-100/50 dark:shadow-none border border-indigo-50 dark:border-slate-800 flex flex-col items-center justify-center p-8 backface-hidden">
-            <span className="text-indigo-400 dark:text-indigo-500 text-[10px] font-black uppercase tracking-[0.3em] mb-8 bg-indigo-50 dark:bg-indigo-500/10 px-4 py-1 rounded-full">Original</span>
-            <h2 className="text-4xl font-black text-center text-slate-900 dark:text-white leading-tight">{currentWord.word}</h2>
-            <div className="mt-12 flex items-center gap-2 text-slate-300 dark:text-slate-600">
+            
+            <span className="text-indigo-400 dark:text-indigo-500 text-[10px] font-black uppercase tracking-[0.3em] mb-6 bg-indigo-50 dark:bg-indigo-500/10 px-4 py-1 rounded-full">
+              Original
+            </span>
+
+            {/* ИЗМЕНЕНИЯ ЗДЕСЬ: Рендерим кнопку, только если язык поддерживается */}
+            {langCode && (
+              <button
+                onClick={(e) => playAudio(e, currentWord.word)}
+                className="mb-6 p-4 bg-blue-50/80 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-full transition-all active:scale-90 shadow-[0_0_20px_rgba(59,130,246,0.3)] dark:shadow-[0_0_20px_rgba(250,204,21,0.15)]"
+                title="Послушать"
+                style={{ WebkitBackfaceVisibility: "hidden", backfaceVisibility: "hidden" }}
+              >
+                <Volume2 size={28} />
+              </button>
+            )}
+
+            <h2 className="text-4xl font-black text-center text-slate-900 dark:text-white leading-tight">
+              {currentWord.word}
+            </h2>
+            
+            <div className="mt-8 flex items-center gap-2 text-slate-300 dark:text-slate-600">
                <span className="text-[10px] font-bold uppercase tracking-widest animate-pulse">Нажми, чтобы перевернуть</span>
             </div>
           </div>
 
-          {/* Рубашка */}
+          {/* РУБАШКА */}
           <div className="absolute inset-0 bg-indigo-600 dark:bg-indigo-700 rounded-[3.5rem] shadow-2xl shadow-indigo-500/40 dark:shadow-indigo-900/20 flex flex-col items-center justify-center p-8 backface-hidden rotate-y-180 border border-white/10">
-            <span className="text-white/40 dark:text-white/30 text-[10px] font-black uppercase tracking-[0.3em] mb-8 bg-white/10 px-4 py-1 rounded-full">Translation</span>
-            <h2 className="text-4xl font-black text-center text-white leading-tight">{currentWord.translate}</h2>
+            <span className="text-white/40 dark:text-white/30 text-[10px] font-black uppercase tracking-[0.3em] mb-6 bg-white/10 px-4 py-1 rounded-full">
+              Translation
+            </span>
+
+            {/* ИЗМЕНЕНИЯ ЗДЕСЬ: Рендерим кнопку, только если язык поддерживается */}
+            {langCode && (
+              <button
+                onClick={(e) => playAudio(e, currentWord.word)}
+                className="mb-6 p-4 bg-white/10 text-white hover:bg-white/20 rounded-full transition-all active:scale-90 shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+                title="Послушать"
+                style={{ WebkitBackfaceVisibility: "hidden", backfaceVisibility: "hidden" }}
+              >
+                <Volume2 size={28} />
+              </button>
+            )}
+
+            <h2 className="text-4xl font-black text-center text-white leading-tight">
+              {currentWord.translate}
+            </h2>
           </div>
           
         </div>
       </div>
 
-      {/* Управление */}
       <div className="flex flex-col items-center gap-8 mt-12 w-full max-w-sm">
         <div className="flex items-center gap-10">
             <button 
@@ -206,7 +303,10 @@ export default function TrainingPage() {
       <style jsx>{`
         .perspective-1000 { perspective: 1000px; }
         .transform-style-3d { transform-style: preserve-3d; }
-        .backface-hidden { backface-visibility: hidden; }
+        .backface-hidden { 
+          backface-visibility: hidden; 
+          -webkit-backface-visibility: hidden; 
+        }
         .rotate-y-180 { transform: rotateY(180deg); }
       `}</style>
     </div>

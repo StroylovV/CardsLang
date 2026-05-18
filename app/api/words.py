@@ -1,8 +1,9 @@
+from turtle import update
 from typing import Any, List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 
 from app.core.security import get_current_user_id
-from app.schemas import Word_Create, Word_Response, Word_Update
+from app.schemas import Word_Create, Word_Response, Word_Update, BulkUpdateStudiedRequest
 from app.service import WordService
 
 from app.models import Word, Dictionary 
@@ -64,6 +65,31 @@ async def mark_as_studied(
         raise HTTPException(status_code=403, detail="Нет доступа")
 
     return await word_service.mark_as_studied(word, is_studied)
+
+@router.put("/bulk-study", status_code=status.HTTP_200_OK)
+async def bulk_mark_as_studied(
+    request: BulkUpdateStudiedRequest,
+    word_service: WordService = Depends(),
+    current_user_id: int = Depends(get_current_user_id)
+)->Any:
+    update_count = await word_service.bulk_mark_as_studied(request.ids, request.is_studied)
+    return {"detail": f"Успешно обновлено слов: {update_count}"}
+
+@router.get("/{dictionary_id}/training-batch", response_model=List[Word_Response])
+async def get_training_batch(
+    dictionary_id : int,
+    ids: str = Query(..., description="ID слов через запятую, например: 1,2,3"),
+    word_service: WordService = Depends(),
+    current_user_id: int = Depends(get_current_user_id)
+)->Any:
+    try:
+        id_list = [int(x.strip()) for x in ids.split(",") if x.strip().isdigit()]
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Неверный формат ids")
+    if not id_list:
+        raise HTTPException(status_code=400, detail="Список ID пуст")
+
+    return await word_service.get_words_by_ids(dictionary_id, id_list)
 
 @router.delete("/{word_id}")
 async def delete_word(
