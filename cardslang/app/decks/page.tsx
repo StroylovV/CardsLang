@@ -3,9 +3,11 @@
 import { useEffect, useState, useCallback } from "react";
 import { apiFetch } from "../lib/api";
 import { useRouter } from "next/navigation";
-import { Trash2, Plus, GraduationCap, Target, Sun, Moon } from "lucide-react";
-import { useTheme } from "next-themes"; // Используем хук для синхронизации
-
+// Добавили иконку User
+import { Trash2, Plus, GraduationCap, Target, Sun, Moon, User } from "lucide-react"; 
+import { useTheme } from "next-themes"; 
+import UserProfileModal from "../components/UserProfileModal"; // Проверь путь к твоему компоненту!
+import Image from "next/image";
 interface DeckSummary {
   id: number;
   title: string;
@@ -19,6 +21,10 @@ export default function DecksPage() {
   const [decks, setDecks] = useState<DeckSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // Новое состояние для профиля
+  const [isProfileOpen, setIsProfileOpen] = useState(false); 
+
   const [newLang, setNewLang] = useState("");
   const [issubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
@@ -85,13 +91,37 @@ export default function DecksPage() {
   );
 
   return (
-    // Добавлены стили dark:bg-slate-950
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 pb-20 relative font-sans transition-colors duration-300">
       <header className="bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800 px-6 py-8 mb-12 shadow-sm">
         <div className="max-w-5xl mx-auto flex justify-between items-center">
-          <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tight">Мои Словари</h1>
+          <div className="flex items-center gap-6">
+              <Image 
+                src="/logo.png" 
+                alt="CardsLang Logo" 
+                width={160} 
+                height={45} 
+                className="object-contain"
+                priority // Загружаем логотип в первую очередь
+              />
+              {/* Разделительная полоска и заголовок */}
+              <div className="h-10 w-px bg-gray-200 dark:bg-slate-700 hidden sm:block"></div>
+              <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight hidden sm:block">
+                Мои Словари
+              </h1>
+          </div>
           
           <div className="flex items-center gap-4">
+            {/* Кнопка Профиля */}
+            {mounted && (
+              <button 
+                onClick={() => setIsProfileOpen(true)}
+                className="p-4 rounded-2xl bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 transition-all hover:scale-105 active:scale-95"
+                title="Мой профиль"
+              >
+                <User size={24} />
+              </button>
+            )}
+
             {/* Кнопка переключения темы */}
             {mounted && (
               <button 
@@ -170,10 +200,10 @@ export default function DecksPage() {
         </div>
       </main>
 
-      {/* Модалка с темной темой */}
+      {/* Модалка создания словаря */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-[3.5rem] w-full max-w-md p-12 shadow-2xl animate-in fade-in zoom-in duration-300">
+          <div className="bg-white dark:bg-slate-900 rounded-[3.5rem] w-full max-w-md p-12 shadow-2xl animate-in fade-in zoom-in duration-300 border border-gray-100 dark:border-slate-800">
             <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-8">Добавить язык</h2>
             <form onSubmit={handleCreateDeck}>
               <input 
@@ -193,6 +223,11 @@ export default function DecksPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Вставляем модальное окно профиля */}
+      {isProfileOpen && (
+        <UserProfileModal onClose={() => setIsProfileOpen(false)} />
       )}
     </div>
   );

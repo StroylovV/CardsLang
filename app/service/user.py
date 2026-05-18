@@ -1,3 +1,4 @@
+import email
 from typing import List, Optional
 
 from fastapi import Depends
@@ -25,6 +26,7 @@ class UserService:
     
     async def Create(self, user_in: UserCreate)-> User:
         user = User(
+            email=user_in.email,
             username=user_in.username,
             hashed_password=get_password_hash(user_in.password),
         )
@@ -36,6 +38,8 @@ class UserService:
     async def Update(self, user: User, user_in: UserUpdate) -> User:
         if user_in.username is not None:
             user.username = user_in.username
+        if user_in.email is not None:
+            user.email = user_in.email
         if user_in.password is not None:
             user.hashed_password = get_password_hash(user_in.password)
         
