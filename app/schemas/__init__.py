@@ -1,4 +1,4 @@
-from app.schemas.todo import Word_Create, Word_Response, DictionaryCreate, DictionaryResponse, Word_Update, BulkUpdateStudiedRequest
+from app.schemas.todo import Word_Create, Word_Response, DictionaryCreate, DictionaryResponse, Word_Update, BulkUpdateStudiedRequest, DictionaryUpdate
 from app.schemas.token import Token
 from app.schemas.user import UserBase, UserCreate, UserInfo, UserResponse, UserUpdate 
 
@@ -15,5 +15,6 @@ __all__=[
     "UserUpdate",
     "Word_Update",
     "BulkUpdateStudiedRequest",
+    "DictionaryUpdate",
     
 ]

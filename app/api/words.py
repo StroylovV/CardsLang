@@ -5,7 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from app.core.security import get_current_user_id
 from app.schemas import Word_Create, Word_Response, Word_Update, BulkUpdateStudiedRequest
 from app.service import WordService
-
+from fastapi_cache import FastAPICache
+from fastapi_cache.decorator import cache
 from app.models import Word, Dictionary 
 
 router = APIRouter()
@@ -35,9 +36,11 @@ async def new_word(
     word_service: WordService = Depends(),
     current_user_id: int = Depends(get_current_user_id)
 ) -> Any:
+    await FastAPICache.clear(namespace="summary")
     return await word_service.add_word(word_add, dictionary_id=dictionary_id)
 
 @router.get("/all_summary")
+@cache(expire=60, namespace="summary")
 async def get_language_summary(
     #dictionary_id: int,
     word_service: WordService = Depends(),
@@ -63,7 +66,7 @@ async def mark_as_studied(
     
     if word.dictionary.user_id != current_user_id:
         raise HTTPException(status_code=403, detail="Нет доступа")
-
+    await FastAPICache.clear(namespace="summary")
     return await word_service.mark_as_studied(word, is_studied)
 
 @router.put("/bulk-study", status_code=status.HTTP_200_OK)
@@ -73,6 +76,7 @@ async def bulk_mark_as_studied(
     current_user_id: int = Depends(get_current_user_id)
 )->Any:
     update_count = await word_service.bulk_mark_as_studied(request.ids, request.is_studied)
+    await FastAPICache.clear(namespace="summary")
     return {"detail": f"Успешно обновлено слов: {update_count}"}
 
 @router.get("/{dictionary_id}/training-batch", response_model=List[Word_Response])
@@ -106,6 +110,7 @@ async def delete_word(
         raise HTTPException(status_code=403, detail="Нет доступа")
     
     await word_service.delete(word)
+    await FastAPICache.clear(namespace="summary")
     return {"detail": "Слово успешно удалено"}
 
 @router.delete("/{dictionary_id}/delete_all", status_code=status.HTTP_200_OK)
@@ -115,5 +120,6 @@ async def clear_language_dictionar(
     current_user_id: int = Depends(get_current_user_id)
 ) -> Any:
     await word_service.clear_language_dictionary(dictionary_id)
+    await FastAPICache.clear(namespace="summary")
     return {"detail": "Словарь успешно очищен"}
 

@@ -98,6 +98,7 @@ class WordService:
                 "id": row.Dictionary.id,
                 "title": row.Dictionary.lang, 
                 "language": row.Dictionary.lang,
+                "description": row.Dictionary.description,
                 "total_count": row.total,
                 "studied_count": row.studied,
                 "unstudied_count": row.remaining

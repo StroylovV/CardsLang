@@ -22,7 +22,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             await session.close()
 
 async def create_tables():
-    async with engine.begin as conn:
+    async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
 

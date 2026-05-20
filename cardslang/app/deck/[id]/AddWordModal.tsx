@@ -15,7 +15,6 @@ export default function AddWordModal({ dictionaryId, onClose, onSuccess }: Props
   const [translate, setTranslate] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // Закрытие по нажатию Esc
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -30,7 +29,6 @@ export default function AddWordModal({ dictionaryId, onClose, onSuccess }: Props
 
     setSubmitting(true);
     try {
-      // ИСПРАВЛЕНО: путь запроса должен соответствовать роутеру бэкенда
       await apiFetch(`/words/${dictionaryId}/words`, {
         method: "POST",
         body: JSON.stringify({ 
@@ -39,7 +37,6 @@ export default function AddWordModal({ dictionaryId, onClose, onSuccess }: Props
         }),
       });
       
-      // Очищаем форму перед закрытием
       setWord("");
       setTranslate("");
       onSuccess();
@@ -53,28 +50,31 @@ export default function AddWordModal({ dictionaryId, onClose, onSuccess }: Props
 
   return (
     <div 
-      className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[100] p-4"
+      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-white rounded-[2.5rem] p-8 w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-300 relative">
+      {/* Применили Glassmorphism для карточки */}
+      <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl p-8 w-full max-w-md rounded-[3.5rem] shadow-2xl animate-in fade-in zoom-in duration-300 relative border border-white/20 dark:border-slate-800/50">
+        
         <button 
           onClick={onClose}
-          className="absolute top-6 right-6 text-slate-300 hover:text-slate-600 transition-colors"
+          className="absolute top-8 right-8 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
         >
-          <X size={24} />
+          <X size={24} strokeWidth={2.5} />
         </button>
 
-        <h2 className="text-3xl font-black mb-8 text-gray-900 tracking-tight">Новое слово</h2>
+        <h2 className="text-3xl font-black mb-8 text-gray-900 dark:text-white tracking-tight">Новое слово</h2>
         
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <label className="block text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] ml-2">
+            <label className="block text-[10px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-[0.2em] ml-2">
               Оригинал (ENG)
             </label>
             <input 
               autoFocus
               required
-              className="w-full p-5 bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-[1.5rem] outline-none transition-all text-lg font-bold text-gray-800 placeholder:text-slate-300"
+              // Инпуты адаптированы под темную тему
+              className="w-full p-5 bg-gray-50/50 dark:bg-slate-950/50 border-2 border-gray-100 dark:border-slate-800 focus:border-indigo-500 dark:focus:border-indigo-500 rounded-[1.5rem] outline-none transition-all text-lg font-bold text-gray-900 dark:text-white shadow-inner placeholder:text-gray-300 dark:placeholder:text-gray-600"
               value={word}
               onChange={(e) => setWord(e.target.value)}
               placeholder="Apple"
@@ -82,12 +82,12 @@ export default function AddWordModal({ dictionaryId, onClose, onSuccess }: Props
           </div>
           
           <div className="space-y-2">
-            <label className="block text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] ml-2">
+            <label className="block text-[10px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-[0.2em] ml-2">
               Перевод (RU)
             </label>
             <input 
               required
-              className="w-full p-5 bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-[1.5rem] outline-none transition-all text-lg font-bold text-gray-800 placeholder:text-slate-300"
+              className="w-full p-5 bg-gray-50/50 dark:bg-slate-950/50 border-2 border-gray-100 dark:border-slate-800 focus:border-indigo-500 dark:focus:border-indigo-500 rounded-[1.5rem] outline-none transition-all text-lg font-bold text-gray-900 dark:text-white shadow-inner placeholder:text-gray-300 dark:placeholder:text-gray-600"
               value={translate}
               onChange={(e) => setTranslate(e.target.value)}
               placeholder="Яблоко"
@@ -98,14 +98,14 @@ export default function AddWordModal({ dictionaryId, onClose, onSuccess }: Props
             <button 
               type="button"
               onClick={onClose}
-              className="flex-1 py-5 font-black text-slate-400 hover:text-slate-600 transition-colors uppercase text-xs tracking-widest"
+              className="flex-1 py-5 font-black text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors uppercase text-xs tracking-widest"
             >
               Отмена
             </button>
             <button 
               type="submit"
               disabled={submitting || !word.trim() || !translate.trim()}
-              className="flex-[2] py-5 bg-indigo-600 text-white font-black rounded-[1.5rem] shadow-xl shadow-indigo-200 disabled:opacity-40 hover:bg-indigo-700 active:scale-95 transition-all uppercase text-xs tracking-widest"
+              className="flex-[2] py-5 bg-indigo-600 text-white font-black rounded-[1.5rem] shadow-xl shadow-indigo-200 dark:shadow-none disabled:opacity-40 hover:bg-indigo-700 active:scale-95 transition-all uppercase text-xs tracking-widest"
             >
               {submitting ? "Сохранение..." : "Добавить"}
             </button>

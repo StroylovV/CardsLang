@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { apiFetch } from "../lib/api"; // Проверь путь к твоему apiFetch
+import { apiFetch } from "../lib/api"; 
 import { X, UserPlus, ArrowRight } from "lucide-react";
 
 interface RegisterModalProps {
@@ -24,7 +24,6 @@ export default function RegisterModal({ onClose, onSuccess }: RegisterModalProps
     setError("");
 
     try {
-      // Отправляем данные точно по твоей схеме
       await apiFetch("/user/", {
         method: "POST",
         body: JSON.stringify({
@@ -36,7 +35,6 @@ export default function RegisterModal({ onClose, onSuccess }: RegisterModalProps
 
       setSuccess(true);
       
-      // Если передали onSuccess, вызываем его (например, чтобы переключить на окно Входа)
       if (onSuccess) {
         setTimeout(() => onSuccess(username.trim(), password.trim()), 1500);
       } else {
@@ -52,10 +50,11 @@ export default function RegisterModal({ onClose, onSuccess }: RegisterModalProps
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[70] flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-slate-900 rounded-[3.5rem] w-full max-w-md p-10 shadow-2xl animate-in fade-in zoom-in duration-300 relative border border-gray-100 dark:border-slate-800">
+    // Затемнение заднего фона модалки оставляем, чтобы сфокусировать внимание
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+      {/* КАРТОЧКА МОДАЛКИ: Применяем Glassmorphism */}
+      <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl rounded-[3.5rem] w-full max-w-md p-10 shadow-2xl animate-in fade-in zoom-in duration-300 relative border border-white/20 dark:border-slate-800/50">
         
-        {/* Кнопка закрытия */}
         <button 
           onClick={onClose}
           className="absolute top-8 right-8 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
@@ -72,7 +71,7 @@ export default function RegisterModal({ onClose, onSuccess }: RegisterModalProps
 
         {success ? (
           <div className="py-12 text-center animate-in fade-in zoom-in">
-            <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
+            <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
               <UserPlus size={40} />
             </div>
             <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Добро пожаловать!</h3>
@@ -81,7 +80,6 @@ export default function RegisterModal({ onClose, onSuccess }: RegisterModalProps
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5">
             
-            {/* Имя пользователя */}
             <div>
               <label className="block text-sm font-bold text-gray-500 dark:text-gray-400 ml-2 mb-2 uppercase tracking-wide">
                 Имя пользователя
@@ -90,13 +88,13 @@ export default function RegisterModal({ onClose, onSuccess }: RegisterModalProps
                 type="text" 
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-6 py-4 bg-gray-50 dark:bg-slate-950 border-2 border-gray-100 dark:border-slate-800 rounded-[1.5rem] outline-none focus:border-indigo-600 dark:focus:border-indigo-500 transition-all text-lg font-bold text-gray-900 dark:text-white" 
+                // ИНПУТЫ: Делаем их слегка прозрачными с внутренней тенью
+                className="w-full px-6 py-4 bg-gray-50/50 dark:bg-slate-950/50 border-2 border-gray-100 dark:border-slate-800 rounded-[1.5rem] outline-none focus:border-indigo-600 dark:focus:border-indigo-500 transition-all text-lg font-bold text-gray-900 dark:text-white shadow-inner" 
                 placeholder="Придумайте никнейм"
                 required
               />
             </div>
 
-            {/* Email */}
             <div>
               <label className="block text-sm font-bold text-gray-500 dark:text-gray-400 ml-2 mb-2 uppercase tracking-wide">
                 Email
@@ -105,13 +103,12 @@ export default function RegisterModal({ onClose, onSuccess }: RegisterModalProps
                 type="email" 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-6 py-4 bg-gray-50 dark:bg-slate-950 border-2 border-gray-100 dark:border-slate-800 rounded-[1.5rem] outline-none focus:border-indigo-600 dark:focus:border-indigo-500 transition-all text-lg font-bold text-gray-900 dark:text-white" 
+                className="w-full px-6 py-4 bg-gray-50/50 dark:bg-slate-950/50 border-2 border-gray-100 dark:border-slate-800 rounded-[1.5rem] outline-none focus:border-indigo-600 dark:focus:border-indigo-500 transition-all text-lg font-bold text-gray-900 dark:text-white shadow-inner" 
                 placeholder="ваша@почта.com"
                 required
               />
             </div>
 
-            {/* Пароль */}
             <div>
               <label className="block text-sm font-bold text-gray-500 dark:text-gray-400 ml-2 mb-2 uppercase tracking-wide">
                 Пароль
@@ -120,25 +117,23 @@ export default function RegisterModal({ onClose, onSuccess }: RegisterModalProps
                 type="password" 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-6 py-4 bg-gray-50 dark:bg-slate-950 border-2 border-gray-100 dark:border-slate-800 rounded-[1.5rem] outline-none focus:border-indigo-600 dark:focus:border-indigo-500 transition-all text-lg font-bold text-gray-900 dark:text-white" 
+                className="w-full px-6 py-4 bg-gray-50/50 dark:bg-slate-950/50 border-2 border-gray-100 dark:border-slate-800 rounded-[1.5rem] outline-none focus:border-indigo-600 dark:focus:border-indigo-500 transition-all text-lg font-bold text-gray-900 dark:text-white shadow-inner" 
                 placeholder="Минимум 6 символов"
                 required
                 minLength={6}
               />
             </div>
 
-            {/* Ошибка */}
             {error && (
-              <p className="text-red-500 bg-red-50 dark:bg-red-900/20 px-4 py-3 rounded-xl text-sm font-bold border border-red-100 dark:border-red-900/30">
+              <p className="text-red-500 bg-red-50/80 dark:bg-red-900/20 px-4 py-3 rounded-xl text-sm font-bold border border-red-100 dark:border-red-900/30 backdrop-blur-sm">
                 {error}
               </p>
             )}
 
-            {/* Кнопка отправки */}
             <button 
               type="submit" 
               disabled={isLoading || !username || !email || !password} 
-              className="w-full flex justify-center items-center gap-2 bg-indigo-600 text-white py-5 rounded-2xl font-black shadow-xl shadow-indigo-100 dark:shadow-none hover:bg-indigo-700 active:scale-95 transition-all mt-4 disabled:opacity-50 disabled:active:scale-100 uppercase tracking-widest"
+              className="w-full flex justify-center items-center gap-2 bg-indigo-600 text-white py-5 rounded-2xl font-black shadow-xl shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 hover:scale-[1.02] active:scale-95 transition-all mt-4 disabled:opacity-50 disabled:hover:scale-100 uppercase tracking-widest"
             >
               {isLoading ? "Создаем..." : "Зарегистрироваться"}
               {!isLoading && <ArrowRight size={20} />}

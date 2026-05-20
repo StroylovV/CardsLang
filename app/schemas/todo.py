@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel, Field
 
 #Добавление одного слова
@@ -34,14 +34,18 @@ class Word_Update(BaseModel):
 #Создание словаря
 class DictionaryCreate(BaseModel):
     lang: str = Field(..., description="Язык словаря", examples=["English"])
-
+    description: Optional[str] = None
 #Получение словаря
 class DictionaryResponse(DictionaryCreate):
     id: int
     user_id: int
-    length: int    
+    length: int   
+    description: Optional[str] = None
     class Config:
         from_attributes = True
+
+class DictionaryUpdate(BaseModel):
+    description: str = Field(None, description="Описание")
 
 class BulkUpdateStudiedRequest(BaseModel):
     ids: List[int]

@@ -98,13 +98,16 @@ export default function DictionaryPage() {
       return;
     }
 
-    const audioUrl = `http://localhost:8000/api/tts_word/app/voice/speak?text=${encodeURIComponent(word)}&lang=${langCode}`;
+    const NEXT_PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
     try {
-      const response = await fetch(audioUrl, {
-        method: "GET",
-        credentials: "include",
-      });
+      const response = await fetch(
+        `${NEXT_PUBLIC_API_URL}/api/tts_word/app/voice/speak?text=${encodeURIComponent(word)}&lang=${langCode}`, 
+        {
+          method: "GET",
+          credentials: "include",
+        }
+      );
       
       if (!response.ok) throw new Error("Ошибка загрузки аудио");
 
@@ -182,13 +185,23 @@ export default function DictionaryPage() {
   };
 
   return (
-    <div className="min-h-screen relative pb-32 font-sans transition-colors duration-300">
+    <div className="min-h-screen relative pb-32 font-sans transition-colors duration-300 overflow-hidden">
       
-      {/* КРАСИВЫЙ ФОН */}
+      {/* ФОН С РЕДКИМИ ВОЛНАМИ */}
       <div className="fixed inset-0 z-[-1] bg-[#F8FAFC] dark:bg-slate-950 transition-colors duration-300">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
-        <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-400/30 dark:bg-purple-600/20 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-400/30 dark:bg-blue-600/20 rounded-full blur-[120px]" />
+        
+        {/* НОВЫЕ: Абстрактные редкие волнистые линии (SVG) */}
+        <div className="absolute inset-0 pointer-events-none opacity-[0.08] dark:opacity-[0.03] text-indigo-500/80 dark:text-indigo-600">
+          <svg width="100%" height="100%" viewBox="0 0 1000 1000" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+            <path d="M0,200 C150,100 350,300 500,200 S850,100 1000,200" stroke="currentColor" strokeWidth="1" fill="none"/>
+            <path d="M0,500 C200,650 400,350 600,500 S900,650 1000,500" stroke="currentColor" strokeWidth="1" fill="none"/>
+            <path d="M0,800 C100,700 300,900 500,800 S800,700 1000,800" stroke="currentColor" strokeWidth="1" fill="none"/>
+          </svg>
+        </div>
+
+        {/* Сферы (здесь они фиолетово-синие) */}
+        <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-400/30 dark:bg-purple-600/20 rounded-full blur-[140px]" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-400/30 dark:bg-blue-600/20 rounded-full blur-[140px]" />
       </div>
 
       <div className="max-w-3xl mx-auto px-4 pt-8 relative z-10">
@@ -242,7 +255,6 @@ export default function DictionaryPage() {
           </div>
         </header>
 
-        {/* Табы */}
         <div className="flex bg-white/40 dark:bg-slate-900/40 backdrop-blur-md p-1.5 rounded-[2rem] mb-8 gap-1 border border-white/30 dark:border-slate-800/50">
           <button
             onClick={() => setActiveTab("new")}
@@ -266,7 +278,6 @@ export default function DictionaryPage() {
           </button>
         </div>
 
-        {/* Список слов */}
         <div className="space-y-4 relative z-10">
           {loading ? (
             <div className="flex flex-col items-center py-20">
@@ -332,7 +343,6 @@ export default function DictionaryPage() {
         </div>
       </div>
 
-      {/* Плавающая панель действий */}
       {selectedWords.length > 0 && (
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 w-[90%] max-w-lg bg-gray-900/90 dark:bg-slate-900/90 backdrop-blur-2xl text-white p-4 rounded-[2.5rem] shadow-2xl flex items-center justify-between z-40 animate-in slide-in-from-bottom-10 border border-white/10">
           <div className="pl-4">

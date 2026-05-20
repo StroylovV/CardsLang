@@ -28,7 +28,7 @@ class Dictionary(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     lang: Mapped[str] = mapped_column(String(90), nullable=False)
-
+    description: Mapped[str] = mapped_column(String(90), nullable=True)
     
     words: Mapped[List["Word"]] = relationship(
         back_populates="dictionary", 

@@ -5,7 +5,7 @@ import edge_tts
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from app.core.security import get_current_user_id
-
+from fastapi_cache.decorator import cache
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -26,6 +26,7 @@ VOICE_MAPPING = {
 }
 
 @router.get("/app/voice/speak")
+@cache(expire=5)
 async def speak_word(
     text: str = Query(..., description="Текст слова или фразы для озвучки", min_length=1),
     lang: str = Query(..., description="Код языка из вашей БД (например: en, ru, zh, es)"),
