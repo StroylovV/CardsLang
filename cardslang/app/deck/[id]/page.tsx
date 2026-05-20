@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { apiFetch } from "../../lib/api";
 import AddWordModal from "./AddWordModal";
@@ -88,39 +88,48 @@ export default function DictionaryPage() {
 
   const langCode = getLangCode(deckLang);
 
-  const playAudio = async (e: React.MouseEvent, word: string) => {
+  const playAudio = async (e: React.MouseEvent, textToSpeak: string) => {
     e.stopPropagation(); 
+    
     if (!langCode) return; 
     
-    if (audioCache.current[word]) {
-      const audio = new Audio(audioCache.current[word]);
+    // Ключ для кэша, чтобы слова кэшировались по языкам
+    const cacheKey = `${textToSpeak}_${langCode}`;
+
+    if (audioCache.current[cacheKey]) {
+      const audio = new Audio(audioCache.current[cacheKey]);
       audio.play().catch(err => console.error(err));
       return;
     }
 
-    const NEXT_PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
     try {
       const response = await fetch(
-        `${NEXT_PUBLIC_API_URL}/api/tts_word/app/voice/speak?text=${encodeURIComponent(word)}&lang=${langCode}`, 
+        `${API_BASE}/tts_word/app/voice/speak?text=${encodeURIComponent(textToSpeak)}&lang=${langCode}`, 
         {
           method: "GET",
           credentials: "include",
         }
       );
       
-      if (!response.ok) throw new Error("Ошибка загрузки аудио");
+      // Читаем текст ошибки с бэкенда, если что-то пошло не так
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errText}`);
+      }
 
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       
-      audioCache.current[word] = url;
+      audioCache.current[cacheKey] = url;
       
       const audio = new Audio(url);
       audio.play().catch(err => console.error(err));
       
     } catch (error) {
-      console.error("Ошибка воспроизведения:", error);
+      console.error("Подробная ошибка воспроизведения:", error);
+      alert("Не удалось загрузить аудио. Загляни в консоль разработчика (F12)!");
     }
   };
 
@@ -185,40 +194,28 @@ export default function DictionaryPage() {
   };
 
   return (
-    <div className="min-h-screen relative pb-32 font-sans transition-colors duration-300 overflow-hidden">
+    <div className="min-h-screen relative pb-32 font-sans transition-colors duration-300">
       
-      {/* ФОН С РЕДКИМИ ВОЛНАМИ */}
-      <div className="fixed inset-0 z-[-1] bg-[#F8FAFC] dark:bg-slate-950 transition-colors duration-300">
+      {/* ИСПРАВЛЕННАЯ ШИРИНА 5XL */}
+      <div className="max-w-5xl mx-auto px-4 pt-6 relative z-10">
         
-        {/* НОВЫЕ: Абстрактные редкие волнистые линии (SVG) */}
-        <div className="absolute inset-0 pointer-events-none opacity-[0.08] dark:opacity-[0.03] text-indigo-500/80 dark:text-indigo-600">
-          <svg width="100%" height="100%" viewBox="0 0 1000 1000" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-            <path d="M0,200 C150,100 350,300 500,200 S850,100 1000,200" stroke="currentColor" strokeWidth="1" fill="none"/>
-            <path d="M0,500 C200,650 400,350 600,500 S900,650 1000,500" stroke="currentColor" strokeWidth="1" fill="none"/>
-            <path d="M0,800 C100,700 300,900 500,800 S800,700 1000,800" stroke="currentColor" strokeWidth="1" fill="none"/>
-          </svg>
-        </div>
-
-        {/* Сферы (здесь они фиолетово-синие) */}
-        <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-400/30 dark:bg-purple-600/20 rounded-full blur-[140px]" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-400/30 dark:bg-blue-600/20 rounded-full blur-[140px]" />
-      </div>
-
-      <div className="max-w-3xl mx-auto px-4 pt-8 relative z-10">
-        <header className="flex justify-between items-center mb-8 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-4 rounded-3xl shadow-sm border border-white/40 dark:border-slate-800/60 sticky top-4 z-40 transition-colors">
+        {/* ЕДИНЫЙ ПАРЯЩИЙ НАВБАР */}
+        <header className="flex justify-between items-center mb-8 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-4 rounded-[2.5rem] shadow-sm border border-white/40 dark:border-slate-800/60 sticky top-6 z-40 transition-colors">
+          
+          {/* Левая часть */}
           <div className="flex items-center gap-4">
             <button
               onClick={() => router.push('/decks')}
-              className="p-2 hover:bg-white dark:hover:bg-slate-800 rounded-xl transition-colors text-indigo-600 dark:text-indigo-400"
+              className="p-3 hover:bg-white dark:hover:bg-slate-800 rounded-2xl transition-colors text-indigo-600 dark:text-indigo-400 active:scale-95"
             >
-              <ChevronLeft size={28} />
+              <ChevronLeft size={24} />
             </button>
             
             <Image 
               src="/logo.png" 
               alt="CardsLang Logo" 
-              width={130} 
-              height={36} 
+              width={140} 
+              height={40} 
               className="object-contain hidden md:block" 
             />
             <div className="h-8 w-px bg-gray-200 dark:bg-slate-700 hidden md:block"></div>
@@ -228,26 +225,27 @@ export default function DictionaryPage() {
             </h1>
           </div>
           
-          <div className="flex flex-1 justify-end items-center gap-2">
+          {/* Правая часть */}
+          <div className="flex justify-end items-center gap-3">
             {mounted && (
               <button 
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="p-2.5 rounded-xl bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 border border-white/20 dark:border-slate-700/50 text-gray-500 dark:text-yellow-400 transition-all"
+                className="p-3 rounded-2xl bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 border border-white/20 dark:border-slate-700/50 text-gray-500 hover:text-yellow-500 dark:text-yellow-400 transition-all active:scale-95 shadow-sm hidden sm:block"
               >
-                {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+                {theme === "dark" ? <Sun size={22} /> : <Moon size={22} />}
               </button>
             )}
             
             <button
               onClick={() => setIsTrainModalOpen(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-2xl font-bold shadow-lg shadow-blue-200 dark:shadow-none hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 ml-2 rounded-2xl font-bold shadow-lg shadow-blue-200 dark:shadow-none active:scale-95 transition-all flex items-center gap-2"
             >
-              <Play fill="currentColor" size={18} /> Учить слова
+              <Play fill="currentColor" size={18} /> <span className="hidden sm:inline">Учить</span>
             </button>
 
             <button
               onClick={() => setIsModalOpen(true)}
-              className="bg-indigo-600 text-white p-3 rounded-2xl shadow-lg shadow-indigo-200 dark:shadow-none hover:scale-105 active:scale-95 transition-all"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white p-3 rounded-2xl shadow-lg shadow-indigo-200 dark:shadow-none active:scale-95 transition-all"
               title="Добавить слово"
             >
               <Plus size={24} />

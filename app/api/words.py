@@ -1,6 +1,6 @@
 from turtle import update
 from typing import Any, List
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, Request, status, Query
 
 from app.core.security import get_current_user_id
 from app.schemas import Word_Create, Word_Response, Word_Update, BulkUpdateStudiedRequest
@@ -10,6 +10,12 @@ from fastapi_cache.decorator import cache
 from app.models import Word, Dictionary 
 
 router = APIRouter()
+
+def user_key_builder(func, namespace: str, request: Request, response, *args, **kwargs):
+    
+    user_id = kwargs.get("current_user_id", "unknown")
+    
+    return f"{namespace}:user_{user_id}:{request.url.path}"
 
 @router.get("/{dictionary_id}/words", response_model=List[Word_Response])
 async def get_words_to_learn(
@@ -40,7 +46,7 @@ async def new_word(
     return await word_service.add_word(word_add, dictionary_id=dictionary_id)
 
 @router.get("/all_summary")
-@cache(expire=60, namespace="summary")
+@cache(expire=60, namespace="summary", key_builder=user_key_builder)
 async def get_language_summary(
     #dictionary_id: int,
     word_service: WordService = Depends(),

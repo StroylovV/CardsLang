@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { apiFetch } from "../lib/api";
 import { useRouter } from "next/navigation";
-import { Trash2, Plus, GraduationCap, Target, Sun, Moon, User, Edit2 } from "lucide-react"; 
+import { Trash2, Plus, GraduationCap, Target, Sun, Moon, User, Edit2, GripHorizontal } from "lucide-react"; 
 import { useTheme } from "next-themes"; 
 import UserProfileModal from "../components/UserProfileModal"; 
 import Image from "next/image";
@@ -44,6 +44,9 @@ export default function DecksPage() {
   const [editingDeck, setEditingDeck] = useState<DeckSummary | null>(null);
   const [editDescription, setEditDescription] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+
+  // СОСТОЯНИЕ ДЛЯ ПЕРЕТАСКИВАНИЯ (Drag & Drop)
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   const router = useRouter();
   const { theme, setTheme } = useTheme();
@@ -135,6 +138,34 @@ export default function DecksPage() {
     }
   };
 
+  // === ФУНКЦИИ DRAG & DROP ===
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    // Делаем эффект перетаскивания (требуется для Firefox)
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragEnter = (e: React.DragEvent, targetIndex: number) => {
+    if (draggedIndex === null || draggedIndex === targetIndex) return;
+
+    // Плавно меняем карточки местами в массиве
+    setDecks((prevDecks) => {
+      const newDecks = [...prevDecks];
+      const draggedItem = newDecks[draggedIndex];
+      newDecks.splice(draggedIndex, 1);
+      newDecks.splice(targetIndex, 0, draggedItem);
+      return newDecks;
+    });
+    // Обновляем индекс захваченного элемента, так как он переместился
+    setDraggedIndex(targetIndex);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    // 💡 ТУТ В БУДУЩЕМ БУДЕТ ЗАПРОС НА БЭКЕНД ДЛЯ СОХРАНЕНИЯ ПОРЯДКА
+  };
+  // ============================
+
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-950">
       <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
@@ -146,8 +177,6 @@ export default function DecksPage() {
       
       {/* ФОН С РЕДКИМИ ВОЛНАМИ */}
       <div className="fixed inset-0 z-[-1] bg-[#F8FAFC] dark:bg-slate-950 transition-colors duration-300">
-        
-        {/* НОВЫЕ: Абстрактные редкие волнистые линии (SVG) */}
         <div className="absolute inset-0 pointer-events-none opacity-[0.08] dark:opacity-[0.03] text-indigo-500/80 dark:text-indigo-600">
           <svg width="100%" height="100%" viewBox="0 0 1000 1000" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
             <path d="M0,200 C150,100 350,300 500,200 S850,100 1000,200" stroke="currentColor" strokeWidth="1" fill="none"/>
@@ -156,68 +185,84 @@ export default function DecksPage() {
           </svg>
         </div>
         
-        {/* Сферы (оставлены без изменений) */}
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-400/30 dark:bg-indigo-600/20 rounded-full blur-[120px]" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-400/30 dark:bg-blue-600/20 rounded-full blur-[120px]" />
       </div>
 
-      <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-white/20 dark:border-slate-800/50 px-6 py-8 mb-12 shadow-sm sticky top-0 z-40 transition-colors duration-300">
-        <div className="max-w-5xl mx-auto flex justify-between items-center">
+      {/* ЕДИНЫЙ ПАРЯЩИЙ НАВБАР */}
+      <div className="max-w-5xl mx-auto px-4 pt-6 relative z-40 sticky top-0">
+        <header className="flex justify-between items-center bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-4 pl-6 rounded-[2.5rem] shadow-sm border border-white/40 dark:border-slate-800/60 transition-colors duration-300">
+          
           <div className="flex items-center gap-6">
               <Image 
                 src="/logo.png" 
                 alt="CardsLang Logo" 
-                width={160} 
-                height={45} 
+                width={140} 
+                height={40} 
                 className="object-contain"
                 priority 
               />
-              <div className="h-10 w-px bg-gray-200 dark:bg-slate-700 hidden sm:block"></div>
-              <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight hidden sm:block">
+              <div className="h-8 w-px bg-gray-200 dark:bg-slate-700 hidden sm:block"></div>
+              <h1 className="text-xl font-black text-gray-800 dark:text-gray-100 uppercase tracking-tight hidden sm:block">
                 Мои Словари
               </h1>
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             {mounted && (
               <button 
                 onClick={() => setIsProfileOpen(true)}
-                className="p-4 rounded-2xl bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 border border-white/20 dark:border-slate-700/50 text-gray-600 dark:text-gray-300 transition-all hover:scale-105 active:scale-95 shadow-sm"
+                className="p-3 rounded-2xl bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 border border-white/20 dark:border-slate-700/50 text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-all active:scale-95 shadow-sm"
                 title="Мой профиль"
               >
-                <User size={24} />
+                <User size={22} />
               </button>
             )}
 
             {mounted && (
               <button 
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="p-4 rounded-2xl bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 border border-white/20 dark:border-slate-700/50 text-gray-600 dark:text-yellow-400 transition-all hover:scale-105 active:scale-95 shadow-sm"
+                className="p-3 rounded-2xl bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 border border-white/20 dark:border-slate-700/50 text-gray-500 hover:text-yellow-500 dark:text-yellow-400 transition-all active:scale-95 shadow-sm"
               >
-                {theme === "dark" ? <Sun size={24} /> : <Moon size={24} />}
+                {theme === "dark" ? <Sun size={22} /> : <Moon size={22} />}
               </button>
             )}
 
             <button 
               onClick={handleOpenModal} 
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-bold transition-all flex items-center gap-2 shadow-lg shadow-indigo-200 dark:shadow-none active:scale-95"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 ml-2 rounded-2xl font-bold transition-all flex items-center gap-2 shadow-lg shadow-indigo-200 dark:shadow-none active:scale-95"
             >
-              <Plus size={24} /> Новый словарь
+              <Plus size={22} /> <span className="hidden sm:inline">Новый словарь</span>
             </button>
           </div>
-        </div>
-      </header>
+        </header>
+      </div>
 
-      <main className="max-w-5xl mx-auto px-6 relative z-10">
+      {/* ШИРИНА КОНТЕНТА MAX-W-5XL */}
+      <main className="max-w-5xl mx-auto px-4 pt-8 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {decks.map((deck) => (
+          {decks.map((deck, index) => (
             <div
               key={deck.id}
+              draggable // Делаем карточку перетаскиваемой
+              onDragStart={(e) => handleDragStart(e, index)}
+              onDragEnter={(e) => handleDragEnter(e, index)}
+              onDragEnd={handleDragEnd}
+              onDragOver={(e) => e.preventDefault()} // Обязательно для разрешения drop-событий
               onClick={() => router.push(`/deck/${deck.id}`)}
-              className="group cursor-pointer bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl rounded-[3rem] p-8 shadow-sm border border-white/40 dark:border-slate-800/60 
-                         hover:bg-white/90 dark:hover:bg-slate-900/90 hover:shadow-[0_20px_50px_rgba(79,70,229,0.15)] dark:hover:shadow-[0_20px_50px_rgba(0,0,0,0.4)] 
-                         hover:-translate-y-3 transition-all duration-500 relative flex flex-col h-full"
+              className={`group cursor-pointer bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl rounded-[3rem] p-8 shadow-sm border transition-all duration-300 relative flex flex-col h-full
+                ${
+                  draggedIndex === index 
+                    ? "opacity-40 scale-95 border-indigo-500 border-dashed dark:bg-slate-800" // Стиль когда карточку тащат
+                    : "border-white/40 dark:border-slate-800/60 hover:bg-white/90 dark:hover:bg-slate-900/90 hover:shadow-[0_20px_50px_rgba(79,70,229,0.15)] dark:hover:shadow-[0_20px_50px_rgba(0,0,0,0.4)] hover:-translate-y-3"
+                }
+              `}
             >
+              {/* Иконка Drag & Drop для визуального понимания */}
+              <div className="absolute top-3 left-1/2 -translate-x-1/2 text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing">
+                <GripHorizontal size={24} />
+              </div>
+
               <button 
                 onClick={(e) => handleDeleteDeck(e, deck.id)}
                 className="absolute top-6 right-6 z-30 p-3 text-gray-300 dark:text-gray-600 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-2xl transition-all 
@@ -226,17 +271,17 @@ export default function DecksPage() {
                 <Trash2 size={20} />
               </button>
 
-              <div className="relative z-10 flex-1 flex flex-col">
+              <div className="relative z-10 flex-1 flex flex-col pointer-events-none"> {/* pointer-events-none чтобы контент не мешал перетаскиванию */}
                 <div className="w-20 h-20 bg-indigo-600 text-white rounded-[1.5rem] flex items-center justify-center text-3xl font-black mb-6 
                                 shadow-xl shadow-indigo-200 dark:shadow-none group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500 shrink-0">
                   {deck.language.substring(0, 2).toUpperCase()}
                 </div>
                 
-                <h2 className="text-3xl font-black text-gray-800 dark:text-gray-100 mb-2 capitalize group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                <h2 className="text-3xl font-black text-gray-800 dark:text-gray-100 mb-2 capitalize group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors pointer-events-auto">
                   {deck.language}
                 </h2>
 
-                <div className="group/desc flex items-start justify-between mb-6 min-h-[40px] relative">
+                <div className="group/desc flex items-start justify-between mb-6 min-h-[40px] relative pointer-events-auto">
                   {deck.description ? (
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400 line-clamp-2 pr-8">
                       {deck.description}
@@ -256,7 +301,7 @@ export default function DecksPage() {
                   </button>
                 </div>
                 
-                <div className="mt-auto space-y-4 bg-white/50 dark:bg-slate-950/50 rounded-[2rem] p-6 border border-white/50 dark:border-slate-800/50 group-hover:bg-white/80 dark:group-hover:bg-slate-800/80 transition-all duration-500">
+                <div className="mt-auto space-y-4 bg-white/50 dark:bg-slate-950/50 rounded-[2rem] p-6 border border-white/50 dark:border-slate-800/50 group-hover:bg-white/80 dark:group-hover:bg-slate-800/80 transition-all duration-500 pointer-events-auto">
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Всего слов</span>
                     <span className="text-xl font-black text-gray-900 dark:text-white">{deck.total_count}</span>

@@ -26,7 +26,6 @@ VOICE_MAPPING = {
 }
 
 @router.get("/app/voice/speak")
-@cache(expire=5)
 async def speak_word(
     text: str = Query(..., description="Текст слова или фразы для озвучки", min_length=1),
     lang: str = Query(..., description="Код языка из вашей БД (например: en, ru, zh, es)"),

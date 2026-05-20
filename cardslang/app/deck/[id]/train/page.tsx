@@ -88,35 +88,41 @@ export default function TrainingPage() {
     e.stopPropagation(); 
     if (!langCode) return; 
     
-    if (audioCache.current[word]) {
-      const audio = new Audio(audioCache.current[word]);
+    const cacheKey = `${word}_${langCode}`;
+
+    if (audioCache.current[cacheKey]) {
+      const audio = new Audio(audioCache.current[cacheKey]);
       audio.play().catch(err => console.error(err));
       return;
     }
 
-    const NEXT_PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
     try {
       const response = await fetch(
-        `${NEXT_PUBLIC_API_URL}/api/tts_word/app/voice/speak?text=${encodeURIComponent(word)}&lang=${langCode}`, 
+        `${API_BASE}/tts_word/app/voice/speak?text=${encodeURIComponent(word)}&lang=${langCode}`, 
         {
           method: "GET",
           credentials: "include",
         }
       );
       
-      if (!response.ok) throw new Error("Ошибка загрузки аудио");
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errText}`);
+      }
 
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       
-      audioCache.current[word] = url;
+      audioCache.current[cacheKey] = url;
       
       const audio = new Audio(url);
       audio.play().catch(err => console.error(err));
       
     } catch (error) {
-      console.error("Ошибка воспроизведения:", error);
+      console.error("Подробная ошибка воспроизведения:", error);
+      alert("Не удалось загрузить аудио. Загляни в консоль разработчика (F12)!");
     }
   };
 
@@ -175,24 +181,37 @@ export default function TrainingPage() {
   return (
     <div className="min-h-screen flex flex-col items-center p-6 relative z-10 transition-colors duration-300">
       
-      <div className="absolute top-6 left-6 right-6 flex justify-between items-center z-10">
-        {mounted && (
-          <button 
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="p-3 rounded-2xl bg-white/70 dark:bg-slate-900/70 backdrop-blur-md text-gray-500 dark:text-yellow-400 shadow-sm border border-white/20 dark:border-slate-800/50"
-          >
-            {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
-          </button>
-        )}
-        <button 
-          onClick={() => router.push(`/deck/${id}`)}
-          className="w-12 h-12 flex items-center justify-center bg-white/70 dark:bg-slate-900/70 backdrop-blur-md rounded-full shadow-sm border border-white/20 dark:border-slate-800/50 text-gray-400 hover:text-red-500 transition-all"
-        >
-          <X size={24} strokeWidth={2.5} />
-        </button>
+      {/* ЕДИНЫЙ НАВБАР ДЛЯ ТРЕНИРОВКИ */}
+      <div className="w-full max-w-5xl mx-auto px-4 pt-6 relative z-40">
+        <header className="flex justify-between items-center bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-4 rounded-[2.5rem] shadow-sm border border-white/40 dark:border-slate-800/60 transition-colors duration-300">
+          
+          <div className="flex items-center gap-4 px-2">
+            <h1 className="text-xl font-black text-gray-800 dark:text-gray-100 uppercase tracking-tight">
+              Тренировка
+            </h1>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {mounted && (
+              <button 
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="p-3 rounded-2xl bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 border border-white/20 dark:border-slate-700/50 text-gray-500 hover:text-yellow-500 dark:text-yellow-400 transition-all active:scale-95 shadow-sm"
+              >
+                {theme === "dark" ? <Sun size={22} /> : <Moon size={22} />}
+              </button>
+            )}
+            <button 
+              onClick={() => router.push(`/deck/${id}`)}
+              className="p-3 ml-2 rounded-2xl bg-red-50 dark:bg-red-900/20 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/40 transition-all active:scale-95"
+              title="Закрыть тренировку"
+            >
+              <X size={24} strokeWidth={2.5} />
+            </button>
+          </div>
+        </header>
       </div>
 
-      <div className="mt-20 flex items-center gap-2 mb-12">
+      <div className="flex items-center gap-2 mb-12 mt-12">
         {words.map((_, idx) => (
           <div 
             key={idx} 
@@ -208,7 +227,6 @@ export default function TrainingPage() {
       <div className="w-full max-w-sm perspective-1000 h-[420px]" onClick={() => setIsFlipped(!isFlipped)}>
         <div className={`relative w-full h-full transition-all duration-700 transform-style-3d cursor-pointer ${isFlipped ? 'rotate-y-180' : ''}`}>
           
-          {/* ИЗМЕНЕНИЯ ЗДЕСЬ: Убрали прозрачность и blur, сделали 100% заливку */}
           <div className="absolute inset-0 bg-white dark:bg-slate-900 rounded-[3.5rem] shadow-2xl shadow-indigo-100/30 dark:shadow-none border border-gray-100 dark:border-slate-800 flex flex-col items-center justify-center p-8 backface-hidden">
             
             <span className="text-indigo-400 dark:text-indigo-500 text-[10px] font-black uppercase tracking-[0.3em] mb-6 bg-indigo-50 dark:bg-indigo-500/10 px-4 py-1 rounded-full">
@@ -235,17 +253,18 @@ export default function TrainingPage() {
             </div>
           </div>
 
-          {/* ИЗМЕНЕНИЯ ЗДЕСЬ: Убрали прозрачность и blur, сделали 100% заливку */}
+          {/* Обратная сторона (Перевод) */}
           <div className="absolute inset-0 bg-indigo-600 dark:bg-indigo-700 rounded-[3.5rem] shadow-2xl shadow-indigo-500/40 dark:shadow-indigo-900/20 flex flex-col items-center justify-center p-8 backface-hidden rotate-y-180 border border-white/10">
             <span className="text-white/40 dark:text-white/30 text-[10px] font-black uppercase tracking-[0.3em] mb-6 bg-white/10 px-4 py-1 rounded-full">
               Translation
             </span>
 
+            {/* Кнопка озвучки оригинального слова */}
             {langCode && (
               <button
                 onClick={(e) => playAudio(e, currentWord.word)}
                 className="mb-6 p-4 bg-white/10 text-white hover:bg-white/20 rounded-full transition-all active:scale-90"
-                title="Послушать"
+                title="Послушать оригинал"
                 style={{ WebkitBackfaceVisibility: "hidden", backfaceVisibility: "hidden" }}
               >
                 <Volume2 size={28} />
