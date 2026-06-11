@@ -21,6 +21,21 @@ class WordService:
         await self.db.commit()
         return result.scalar_one()
 
+    
+    async def bulk_add_words(self, words_add: List[Word_Create], dictionary_id: int) -> int:
+        if not words_add:
+            return 0
+        
+        values = [
+            {**word.model_dump(), "dictionary_id": dictionary_id, "is_studied": False}
+            for word in words_add
+        ]
+        
+        stmt = insert(Word).values(values)
+        res = await self.db.execute(stmt)
+        await self.db.commit()
+        return res.rowcount
+
     async def get_word_by_id(self, word_id: int) -> Optional[Word]:
         query = (
             select(Word)

@@ -10,8 +10,9 @@ class Word(Base):
     __tablename__ = "words" 
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    word: Mapped[str] = mapped_column(String(255), nullable=False)
-    translate: Mapped[str] = mapped_column(String(255), nullable=False)
+    word: Mapped[str] = mapped_column(String(120), nullable=False)
+    translate: Mapped[str] = mapped_column(String(120), nullable=False)
+    transcription: Mapped[str] = mapped_column(String(120), nullable=True)
     is_studied: Mapped[bool] = mapped_column(Boolean, default=False)
 
     

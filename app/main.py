@@ -9,19 +9,18 @@ from redis import asyncio as aioredis
 import uvicorn
 
 from app.api import api_router
-from app.db.base import create_tables
+
 from app.core.config import cors_config
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    await create_tables()
+    
     
     redis = aioredis.from_url("redis://localhost", encoding="utf8", decode_responses=True)
     FastAPICache.init(RedisBackend(redis), prefix="cache")
     
     yield
     
-
 app = FastAPI(title="Words API", lifespan=lifespan)
 
 app.include_router(api_router)

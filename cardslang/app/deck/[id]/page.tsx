@@ -7,6 +7,7 @@ import AddWordModal from "./AddWordModal";
 import { Trash2, ChevronLeft, Plus, GraduationCap, CheckCircle2, Sun, Moon, Play, X, Minus, Volume2 } from "lucide-react";
 import { useTheme } from "next-themes";
 import Image from "next/image";
+import Link from "next/link";
 
 interface Word {
   id: number;
@@ -211,13 +212,15 @@ export default function DictionaryPage() {
               <ChevronLeft size={24} />
             </button>
             
-            <Image 
-              src="/logo.png" 
-              alt="CardsLang Logo" 
-              width={140} 
-              height={40} 
-              className="object-contain hidden md:block" 
-            />
+            <Link href="/decks" className="transition-all hover:opacity-85 active:scale-95 duration-200 hidden md:flex items-center">
+              <Image 
+                src="/logo.png" 
+                alt="CardsLang Logo" 
+                width={140} 
+                height={40} 
+                className="object-contain" 
+              />
+            </Link>
             <div className="h-8 w-px bg-gray-200 dark:bg-slate-700 hidden md:block"></div>
             
             <h1 className="text-xl font-black text-gray-800 dark:text-gray-100 uppercase tracking-tight">

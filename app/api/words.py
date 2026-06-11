@@ -43,7 +43,7 @@ async def new_word(
     current_user_id: int = Depends(get_current_user_id)
 ) -> Any:
     await FastAPICache.clear(namespace="summary")
-    return await word_service.add_word(word_add, dictionary_id=dictionary_id)
+    return await word_service.add_word(word_add, dictionary_id = dictionary_id)
 
 @router.get("/all_summary")
 @cache(expire=60, namespace="summary", key_builder=user_key_builder)

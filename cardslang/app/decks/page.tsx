@@ -7,6 +7,7 @@ import { Trash2, Plus, GraduationCap, Target, Sun, Moon, User, Edit2, GripHorizo
 import { useTheme } from "next-themes"; 
 import UserProfileModal from "../components/UserProfileModal"; 
 import Image from "next/image";
+import Link from "next/link";
 
 interface DeckSummary {
   id: number;
@@ -194,6 +195,7 @@ export default function DecksPage() {
         <header className="flex justify-between items-center bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-4 pl-6 rounded-[2.5rem] shadow-sm border border-white/40 dark:border-slate-800/60 transition-colors duration-300">
           
           <div className="flex items-center gap-6">
+            <Link href="/decks" className="transition-all hover:opacity-85 active:scale-95 duration-200 flex items-center">
               <Image 
                 src="/logo.png" 
                 alt="CardsLang Logo" 
@@ -202,6 +204,7 @@ export default function DecksPage() {
                 className="object-contain"
                 priority 
               />
+            </Link>
               <div className="h-8 w-px bg-gray-200 dark:bg-slate-700 hidden sm:block"></div>
               <h1 className="text-xl font-black text-gray-800 dark:text-gray-100 uppercase tracking-tight hidden sm:block">
                 Мои Словари
