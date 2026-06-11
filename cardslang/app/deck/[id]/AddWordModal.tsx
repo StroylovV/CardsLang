@@ -69,10 +69,12 @@ export default function AddWordModal({ dictionaryId, onClose, onSuccess }: Props
 
       const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
       
-      // Используем нативный fetch для FormData, так как apiFetch обычно шлет JSON
-      const response = await fetch(`${API_BASE}/app/import_files`, {
+      // ИСПРАВЛЕНО: Добавили /files в путь!
+      const response = await fetch(`${API_BASE}/files/app/import_files`, {
         method: "POST",
         body: formData,
+        // Обязательно передаем куки для авторизации (иначе FastAPI нас не пустит)
+        credentials: "include", 
       });
 
       if (!response.ok) {

@@ -19,32 +19,26 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     // suppressHydrationWarning нужен для next-themes
     <html lang="ru" suppressHydrationWarning>
-      <body className={`min-h-screen font-sans antialiased ${inter.variable}`}>
+      {/* Добавили глобальные цвета фона: bg-slate-50 для светлой темы и bg-[#0B0C10] для темной.
+        Также добавили плавную смену темы (transition-colors duration-500)
+      */}
+      <body className={`min-h-screen bg-slate-50 dark:bg-[#0B0C10] text-slate-900 dark:text-white transition-colors duration-500 font-sans antialiased ${inter.variable}`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >
-          {/* ГЛОБАЛЬНЫЙ ФОН ДЛЯ ВСЕХ СТРАНИЦ */}
-          <div className="fixed inset-0 z-[-1] bg-[#F8FAFC] dark:bg-slate-950 transition-colors duration-300 overflow-hidden pointer-events-none">
-            
-            {/* Редкие волнистые линии (SVG) */}
-            <div className="absolute inset-0 pointer-events-none opacity-[0.08] dark:opacity-[0.03] text-indigo-500/80 dark:text-indigo-600">
-              <svg width="100%" height="100%" viewBox="0 0 1000 1000" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-                <path d="M0,200 C150,100 350,300 500,200 S850,100 1000,200" stroke="currentColor" strokeWidth="1" fill="none"/>
-                <path d="M0,500 C200,650 400,350 600,500 S900,650 1000,500" stroke="currentColor" strokeWidth="1" fill="none"/>
-                <path d="M0,800 C100,700 300,900 500,800 S800,700 1000,800" stroke="currentColor" strokeWidth="1" fill="none"/>
-              </svg>
-            </div>
-            
-            {/* Размытые сферы (универсальные цвета для всего сайта) */}
-            <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-400/30 dark:bg-indigo-600/20 rounded-full blur-[140px]" />
-            <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-400/30 dark:bg-blue-600/20 rounded-full blur-[140px]" />
+          {/* НОВЫЙ ПРЕМИАЛЬНЫЙ ФОН ДЛЯ ВСЕХ СТРАНИЦ */}
+          <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
+            {/* Абстрактные свечения (Mesh Gradient), адаптирующиеся под тему */}
+            <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] bg-indigo-600/15 dark:bg-indigo-600/10 rounded-full blur-[120px] mix-blend-screen" />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-blue-500/15 dark:bg-[#3B0764]/30 rounded-full blur-[120px] mix-blend-screen" />
+            <div className="absolute top-[20%] right-[10%] w-[40%] h-[40%] bg-purple-500/10 dark:bg-purple-900/20 rounded-full blur-[100px] mix-blend-screen" />
           </div>
 
           {/* Основной контент страниц */}
-          <div className="relative z-10">
+          <div className="relative z-10 flex flex-col min-h-screen">
             {children}
           </div>
         </ThemeProvider>
