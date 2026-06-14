@@ -60,8 +60,8 @@ poetry install
     
     DATABASE__POSTGRES_HOST=localhost
     DATABASE__POSTGRES_PORT=5432
-    DATABASE__POSTGRES_USER=postgres
-    DATABASE__POSTGRES_PASSWORD=postgres
+    DATABASE__POSTGRES_USER=user
+    DATABASE__POSTGRES_PASSWORD=password
     DATABASE__POSTGRES_DB=CardsLang
     
     SECURITY__JWT_SECRET_KEY=change-in-production
