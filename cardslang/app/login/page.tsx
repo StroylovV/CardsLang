@@ -72,7 +72,7 @@ export default function AuthPage() {
     setError("");
 
     try {
-      const response = await apiFetch("/user/", {
+      const response = await apiFetch("/user", {
         method: "POST",
         body: JSON.stringify({
           username: username.trim(),
