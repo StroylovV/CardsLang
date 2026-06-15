@@ -1,7 +1,8 @@
 // app/lib/api.ts
-export async function apiFetch(endpoint: string, options: any = {}) {
-  const API_URL = "http://localhost:8000/api";
 
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+
+export async function apiFetch(endpoint: string, options: any = {}) {
   const defaultOptions = {
     ...options,
     credentials: "include", 

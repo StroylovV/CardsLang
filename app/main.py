@@ -27,7 +27,11 @@ app.include_router(api_router)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=cors_config.origins,
+    
+    allow_origins=[
+        "https://cards-lang.vercel.app", 
+        "http://localhost:3000"          
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
