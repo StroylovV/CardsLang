@@ -33,7 +33,12 @@ async def login(
 
 @router.post("/logout")
 async def logout(response: Response):
-    response.delete_cookie(JWT_COOKIE_KEY)
+    response.delete_cookie(
+        key=JWT_COOKIE_KEY, 
+        httponly=True,
+        samesite="none",
+        secure=True
+    )
     return {"details": "Успешный выход из системы"}
     
 
