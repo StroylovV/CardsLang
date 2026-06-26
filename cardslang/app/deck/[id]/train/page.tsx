@@ -87,13 +87,20 @@ export default function TrainingPage() {
 
   const playAudio = async (e: React.MouseEvent, word: string) => {
     e.stopPropagation(); 
-    if (!langCode) return; 
+    
+    
+    console.log(`[AUDIO] Озвучка: "${word}" | Код языка: "${langCode}"`);
+
+    if (!langCode) {
+      console.warn("Язык не определен, отмена озвучки.");
+      return; 
+    }
     
     const cacheKey = `${word}_${langCode}`;
 
     if (audioCache.current[cacheKey]) {
       const audio = new Audio(audioCache.current[cacheKey]);
-      audio.play().catch(err => console.error(err));
+      audio.play().catch(err => console.error("Ошибка кэша:", err));
       return;
     }
 
@@ -108,22 +115,33 @@ export default function TrainingPage() {
         }
       );
       
+      
       if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errText}`);
+        let errorDetail = `HTTP ${response.status}`;
+        try {
+          
+          const errJson = await response.json();
+          errorDetail = errJson.detail || errorDetail;
+        } catch {
+          
+          const errText = await response.text();
+          errorDetail = errText || errorDetail;
+        }
+        throw new Error(errorDetail);
       }
 
+      
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       
       audioCache.current[cacheKey] = url;
       
       const audio = new Audio(url);
-      audio.play().catch(err => console.error(err));
+      audio.play().catch(err => console.error("Ошибка плеера браузера:", err));
       
-    } catch (error) {
-      console.error("Подробная ошибка воспроизведения:", error);
-      alert("Не удалось загрузить аудио. Загляни в консоль разработчика (F12)!");
+    } catch (error: any) {
+      console.error("❌ Ошибка аудио:", error.message);
+      
     }
   };
 

@@ -89,46 +89,48 @@ export default function DictionaryPage() {
 
   const langCode = getLangCode(deckLang);
 
-  const playAudio = async (e: React.MouseEvent, textToSpeak: string) => {
+  const playAudio = async (e: React.MouseEvent, word: string) => {
     e.stopPropagation(); 
-    
     if (!langCode) return; 
     
-    const cacheKey = `${textToSpeak}_${langCode}`;
+    const cacheKey = `${word}_${langCode}`;
 
     if (audioCache.current[cacheKey]) {
       const audio = new Audio(audioCache.current[cacheKey]);
-      audio.play().catch(err => console.error(err));
+      audio.play().catch(err => console.error("Ошибка воспроизведения из кэша:", err));
       return;
     }
 
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
     try {
       const response = await fetch(
-        `${API_BASE}/tts_word/app/voice/speak?text=${encodeURIComponent(textToSpeak)}&lang=${langCode}`, 
+        `${API_BASE}/tts_word/app/voice/speak?text=${encodeURIComponent(word)}&lang=${langCode}`, 
         {
           method: "GET",
-          credentials: "include",
+          credentials: "include", 
         }
       );
+
       
       if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errText}`);
+        const errorData = await response.json();
+        console.error("Ошибка от бэкенда:", errorData.detail || "Неизвестная ошибка TTS");
+        
+        return;
       }
 
+    
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       
+      
       audioCache.current[cacheKey] = url;
-      
       const audio = new Audio(url);
-      audio.play().catch(err => console.error(err));
-      
-    } catch (error) {
-      console.error("Подробная ошибка воспроизведения:", error);
-      alert("Не удалось загрузить аудио. Загляни в консоль разработчика (F12)!");
+      audio.play().catch(err => console.error("Ошибка воспроизведения загруженного аудио:", err));
+
+    } catch (err) {
+      console.error("Сетевая ошибка при запросе аудио:", err);
     }
   };
 
