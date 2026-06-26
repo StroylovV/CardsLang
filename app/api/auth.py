@@ -26,8 +26,8 @@ async def login(
         key="access_token",
         value=access_token,
         httponly=True,
-        samesite="lax",
-        secure=False,   
+        samesite="none",    
+        secure=True,       
     )
     return {"access_token": access_token}
 
