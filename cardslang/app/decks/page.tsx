@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { apiFetch } from "../lib/api";
 import { useRouter } from "next/navigation";
-import { Trash2, Plus, GraduationCap, Target, Sun, Moon, User, Edit2, GripHorizontal } from "lucide-react"; 
+import { Trash2, Plus, GraduationCap, Target, Sun, Moon, User, Edit2, GripHorizontal, FolderPlus } from "lucide-react"; 
 import { useTheme } from "next-themes"; 
 import UserProfileModal from "../components/UserProfileModal"; 
 import Image from "next/image";
@@ -89,8 +89,21 @@ export default function DecksPage() {
   const handleDeleteDeck = async (e: React.MouseEvent, deckId: number) => {
     e.stopPropagation(); 
     if (!confirm("Удалить этот словарь и все слова в нем?")) return;
-    try { await apiFetch(`/dictionary/${deckId}`, { method: "DELETE" }); await fetchSummary(); } 
-    catch (err: any) { alert("Не удалось удалить словарь."); }
+
+    const previousDecks = [...decks];
+
+    setDecks((prev) => prev.filter((deck) => deck.id !== deckId));
+
+    try { 
+      
+      await apiFetch(`/dictionary/${deckId}`, { method: "DELETE" });
+      
+    } catch (err) { 
+      console.error("Ошибка при удалении:", err);
+      alert("Не удалось удалить словарь.");
+      
+      setDecks(previousDecks);
+    }
   };
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
@@ -150,69 +163,95 @@ export default function DecksPage() {
 
       {/* ШИРИНА КОНТЕНТА MAX-W-5XL */}
       <main className="max-w-5xl mx-auto px-4 pt-8 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {decks.map((deck, index) => (
-            <div
-              key={deck.id}
-              draggable onDragStart={(e) => handleDragStart(e, index)} onDragEnter={(e) => handleDragEnter(e, index)} onDragEnd={handleDragEnd} onDragOver={(e) => e.preventDefault()} onClick={() => router.push(`/deck/${deck.id}`)}
-              className={`group cursor-pointer bg-white/80 dark:bg-[#1A1D24]/80 backdrop-blur-xl rounded-[2.5rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border transition-all duration-300 relative flex flex-col h-full
-                ${draggedIndex === index ? "opacity-40 scale-95 border-indigo-500 border-dashed dark:bg-[#13151A]" : "border-white/40 dark:border-white/5 hover:bg-white/90 dark:hover:bg-[#1A1D24] hover:-translate-y-2"}
-              `}
-            >
-              <div className="absolute top-3 left-1/2 -translate-x-1/2 text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing">
-                <GripHorizontal size={24} />
-              </div>
-
-              <button onClick={(e) => handleDeleteDeck(e, deck.id)} className="absolute top-6 right-6 z-30 p-3 text-gray-300 dark:text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-2xl transition-all opacity-0 translate-y-[-10px] group-hover:opacity-100 group-hover:translate-y-0">
-                <Trash2 size={20} />
-              </button>
-
-              <div className="relative z-10 flex-1 flex flex-col pointer-events-none">
-                <div className="w-20 h-20 bg-indigo-600 text-white rounded-[1.5rem] flex items-center justify-center text-3xl font-black mb-6 shadow-lg shadow-indigo-600/30 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500 shrink-0">
-                  {deck.language.substring(0, 2).toUpperCase()}
-                </div>
-                
-                <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-2 capitalize group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors pointer-events-auto">
-                  {deck.language}
-                </h2>
-
-                <div className="group/desc flex items-start justify-between mb-6 min-h-[40px] relative pointer-events-auto">
-                  {deck.description ? (
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 line-clamp-2 pr-8">{deck.description}</p>
-                  ) : (
-                    <p className="text-sm font-medium text-gray-400 dark:text-gray-600 italic pr-8">Нет описания</p>
-                  )}
-                  
-                  <button onClick={(e) => handleOpenEditModal(e, deck)} className="absolute top-0 right-0 p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-white bg-gray-50 hover:bg-indigo-50 dark:bg-white/5 dark:hover:bg-white/10 rounded-lg transition-all opacity-0 group-hover/desc:opacity-100" title="Редактировать описание">
-                    <Edit2 size={16} />
-                  </button>
-                </div>
-                
-                <div className="mt-auto space-y-4 bg-gray-50/50 dark:bg-[#13151A] rounded-[2rem] p-6 border border-gray-100 dark:border-white/5 transition-all duration-500 pointer-events-auto">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Всего слов</span>
-                    <span className="text-xl font-black text-gray-900 dark:text-white">{deck.total_count}</span>
-                  </div>
-                  <div className="h-[1px] bg-gray-200 dark:bg-white/5" />
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-3 text-xs font-bold text-green-500 dark:text-green-400 uppercase tracking-wider">
-                      <div className="p-1.5 bg-green-50 dark:bg-green-500/10 rounded-lg"><GraduationCap size={18} /></div>
-                      <span>Изучено</span>
-                    </div>
-                    <span className="text-lg font-black text-green-600 dark:text-green-400">{deck.studied_count}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-3 text-xs font-bold text-orange-500 dark:text-orange-400 uppercase tracking-wider">
-                      <div className="p-1.5 bg-orange-50 dark:bg-orange-500/10 rounded-lg"><Target size={18} /></div>
-                      <span>Осталось</span>
-                    </div>
-                    <span className="text-lg font-black text-orange-500">{deck.unstudied_count}</span>
-                  </div>
-                </div>
-              </div>
+        {decks.length === 0 ? (
+          <div className="flex flex-col items-center justify-center mt-24 text-center px-4 animate-in fade-in zoom-in-95 duration-500">
+            {/* Иконка в круге с легким свечением */}
+            <div className="w-24 h-24 mb-6 rounded-full bg-indigo-500/10 dark:bg-indigo-500/20 flex items-center justify-center border border-indigo-500/20 shadow-[0_0_30px_rgba(79,70,229,0.15)]">
+              <FolderPlus className="w-12 h-12 text-indigo-600 dark:text-indigo-400" />
             </div>
-          ))}
-        </div>
+            
+            {/* Заголовок и текст */}
+            <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">
+              Ваш список словарей пуст
+            </h3>
+            <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-8 font-medium text-sm leading-relaxed">
+              Создайте свою первую колоду, чтобы начать добавлять карточки и изучать новые слова.
+            </p>
+            
+            {/* Дублирующая кнопка создания */}
+            <button
+              onClick={handleOpenModal}
+              className="px-6 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/20 transition-all active:scale-95 flex items-center gap-2 uppercase tracking-widest text-xs"
+            >
+              <Plus size={18} strokeWidth={3} />
+              Создать словарь
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {decks.map((deck, index) => (
+              <div
+                key={deck.id}
+                draggable onDragStart={(e) => handleDragStart(e, index)} onDragEnter={(e) => handleDragEnter(e, index)} onDragEnd={handleDragEnd} onDragOver={(e) => e.preventDefault()} onClick={() => router.push(`/deck/${deck.id}`)}
+                className={`group cursor-pointer bg-white/80 dark:bg-[#1A1D24]/80 backdrop-blur-xl rounded-[2.5rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border transition-all duration-300 relative flex flex-col h-full
+                  ${draggedIndex === index ? "opacity-40 scale-95 border-indigo-500 border-dashed dark:bg-[#13151A]" : "border-white/40 dark:border-white/5 hover:bg-white/90 dark:hover:bg-[#1A1D24] hover:-translate-y-2"}
+                `}
+              >
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing">
+                  <GripHorizontal size={24} />
+                </div>
+
+                <button onClick={(e) => handleDeleteDeck(e, deck.id)} className="absolute top-6 right-6 z-30 p-3 text-gray-300 dark:text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-2xl transition-all opacity-0 translate-y-[-10px] group-hover:opacity-100 group-hover:translate-y-0">
+                  <Trash2 size={20} />
+                </button>
+
+                <div className="relative z-10 flex-1 flex flex-col pointer-events-none">
+                  <div className="w-20 h-20 bg-indigo-600 text-white rounded-[1.5rem] flex items-center justify-center text-3xl font-black mb-6 shadow-lg shadow-indigo-600/30 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500 shrink-0">
+                    {deck.language.substring(0, 2).toUpperCase()}
+                  </div>
+                  
+                  <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-2 capitalize group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors pointer-events-auto">
+                    {deck.language}
+                  </h2>
+
+                  <div className="group/desc flex items-start justify-between mb-6 min-h-[40px] relative pointer-events-auto">
+                    {deck.description ? (
+                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400 line-clamp-2 pr-8">{deck.description}</p>
+                    ) : (
+                      <p className="text-sm font-medium text-gray-400 dark:text-gray-600 italic pr-8">Нет описания</p>
+                    )}
+                    
+                    <button onClick={(e) => handleOpenEditModal(e, deck)} className="absolute top-0 right-0 p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-white bg-gray-50 hover:bg-indigo-50 dark:bg-white/5 dark:hover:bg-white/10 rounded-lg transition-all opacity-0 group-hover/desc:opacity-100" title="Редактировать описание">
+                      <Edit2 size={16} />
+                    </button>
+                  </div>
+                  
+                  <div className="mt-auto space-y-4 bg-gray-50/50 dark:bg-[#13151A] rounded-[2rem] p-6 border border-gray-100 dark:border-white/5 transition-all duration-500 pointer-events-auto">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Всего слов</span>
+                      <span className="text-xl font-black text-gray-900 dark:text-white">{deck.total_count}</span>
+                    </div>
+                    <div className="h-[1px] bg-gray-200 dark:bg-white/5" />
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-3 text-xs font-bold text-green-500 dark:text-green-400 uppercase tracking-wider">
+                        <div className="p-1.5 bg-green-50 dark:bg-green-500/10 rounded-lg"><GraduationCap size={18} /></div>
+                        <span>Изучено</span>
+                      </div>
+                      <span className="text-lg font-black text-green-600 dark:text-green-400">{deck.studied_count}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-3 text-xs font-bold text-orange-500 dark:text-orange-400 uppercase tracking-wider">
+                        <div className="p-1.5 bg-orange-50 dark:bg-orange-500/10 rounded-lg"><Target size={18} /></div>
+                        <span>Осталось</span>
+                      </div>
+                      <span className="text-lg font-black text-orange-500">{deck.unstudied_count}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </main>
 
       {/* МОДАЛКИ (Приведены к новому стилю) */}

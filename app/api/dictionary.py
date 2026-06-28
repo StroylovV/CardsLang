@@ -1,6 +1,7 @@
 from typing import Any, List
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi_cache import FastAPICache
 
 from app.core.security import get_current_user_id
 from app.schemas import DictionaryCreate, DictionaryResponse, DictionaryUpdate
@@ -55,7 +56,11 @@ async def new_Dictionary(
     current_user_id: int = Depends(get_current_user_id),
 ) -> Any:
     dictionary = await dictionary_service.add_Dictionary(add_dictionary, current_user_id)
+    
+    await FastAPICache.clear(namespace="summary") 
+    
     return dictionary
+
 
 @router.delete("/{dictionary_id}")
 async def del_dict(
@@ -72,4 +77,7 @@ async def del_dict(
         raise HTTPException(status_code=403, detail="Нет доступа")
 
     await dictionary_service.delete(dictionary)
+    
+    await FastAPICache.clear(namespace="summary") 
+    
     return {"detail": "Словарь успешно удален"}

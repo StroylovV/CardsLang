@@ -46,9 +46,7 @@ async def new_word(
     return await word_service.add_word(word_add, dictionary_id = dictionary_id)
 
 @router.get("/all_summary")
-@cache(expire=60, namespace="summary", key_builder=user_key_builder)
 async def get_language_summary(
-    #dictionary_id: int,
     word_service: WordService = Depends(),
     current_user_id: int = Depends(get_current_user_id)
 ) -> Any:
